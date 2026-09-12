@@ -4,9 +4,12 @@
 const SHELL_CACHE = 'app-shell-v1';
 const TILE_CACHE  = 'map-tiles-v1';
 
-// アプリが読み込む外部ライブラリ（CDN）。install時に先読みキャッシュする。
+// アプリが読み込む外部ライブラリ（CDN）＋ PWA関連ファイル。install時に先読みキャッシュする。
 // 本体HTML自体はファイル名を問わず、fetchハンドラで初回アクセス時に自動キャッシュされる。
 const SHELL_URLS = [
+    'manifest.json',
+    'icon-192.png',
+    'icon-512.png',
     'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css',
     'https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css',
     'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js',
@@ -58,18 +61,20 @@ self.addEventListener('fetch', event => {
         return;
     }
 
-    // アプリ本体・外部ライブラリ: Cache First（キャッシュになければ取得して保存）
+    // アプリ本体・外部ライブラリ: Stale-While-Revalidate
+    // （キャッシュがあれば即返しつつ、裏で最新版を取得してキャッシュを更新する。
+    //   Cache Firstだと更新後もオフラインになるまで古い版を返し続けてしまうため、
+    //   オンライン中は常に裏で最新化されるこの方式にする。）
     event.respondWith(
-        caches.match(req).then(cached => {
-            if (cached) return cached;
-            return fetch(req).then(res => {
-                if (res.ok) {
-                    const copy = res.clone();
-                    caches.open(SHELL_CACHE).then(cache => cache.put(req, copy));
-                }
-                return res;
-            }).catch(() => cached);
-        })
+        caches.open(SHELL_CACHE).then(cache =>
+            cache.match(req).then(cached => {
+                const network = fetch(req).then(res => {
+                    if (res.ok) cache.put(req, res.clone());
+                    return res;
+                }).catch(() => cached);
+                return cached || network;
+            })
+        )
     );
 });
 
