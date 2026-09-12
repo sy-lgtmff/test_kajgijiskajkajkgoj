@@ -1,2 +1,0 @@
-# Sider_scorp
-Study
