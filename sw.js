@@ -9,7 +9,6 @@ const TILE_CACHE  = 'map-tiles-v1';
 const SHELL_URLS = [
     'manifest.json',
     'icon-192.png',
-    'icon-512.png',
     'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css',
     'https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css',
     'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js',
@@ -26,7 +25,10 @@ function isMapTile(url) {
 self.addEventListener('install', event => {
     event.waitUntil(
         caches.open(SHELL_CACHE)
-            .then(cache => cache.addAll(SHELL_URLS))
+            // 【重要】cache.addAll()は1件でも取得に失敗すると全体が失敗しinstallが止まる。
+            // ファイルの一時的な欠落・ネットワーク不調で他の資材まで巻き添えにしないよう、
+            // 失敗しても警告だけ出して続行する。
+            .then(cache => cache.addAll(SHELL_URLS).catch(err => console.warn('Shell cache warning:', err)))
             .then(() => self.skipWaiting())
     );
 });
