@@ -4266,6 +4266,16 @@ window.uiHelper = {
             this.switchMapMode(mode);
         }
     },
+    // タブボタンのクリック・スワイプ操作など、ユーザー操作起点でのタブ切替をまとめる。
+    // switchSectionだけだと、写真タブに切り替わってもセンサー起動が行われないため、
+    // ユーザー操作起点であることが必要なGPS・方位センサーの起動もここで合わせて行う。
+    activateSection(group) {
+        this.switchSection(group);
+        if (group === 'photo-area') {
+            gpsManager.start();
+            azimuthManager.startListening().then(() => azimuthManager._updateLiveUI());
+        }
+    },
     showToast(msg) {
         const t = document.getElementById('toast');
         if (!t) return;
@@ -4930,15 +4940,54 @@ document.addEventListener('DOMContentLoaded', () => {
         if (sectionTabs) sectionTabs.classList.toggle('active', t.dataset.target === 'content-app');
     }));
     document.querySelectorAll('.accordion-header').forEach(h => h.addEventListener('click', () => {
-        const group = h.dataset.group;
-        uiHelper.switchSection(group);
-        if (group === 'photo-area') {
-            // センサー起動はユーザー操作起点で呼ぶ必要がある（iOS13以降の権限仕様）ため、
-            // タブ切替のクリックそのものをトリガーにする。
-            gpsManager.start();
-            azimuthManager.startListening().then(() => azimuthManager._updateLiveUI());
-        }
+        uiHelper.activateSection(h.dataset.group);
     }));
+
+    // セクションタブを横スワイプで切り替える（例: 写真→位置図）。
+    // 地図（Leaflet）と白紙メモ（Canvas描画）は指の動きそのものが機能（パン・お絵描き）のため、
+    // それらの上で始まったジェスチャーや、フォーム部品上のドラッグはスワイプ判定から除外する。
+    (() => {
+        const TAB_ORDER = ['num-mgmt', 'map-area', 'photo-area', 'io-area'];
+        const MIN_DISTANCE = 60;   // これより短い移動はスワイプとみなさない
+        const MAX_OFF_AXIS = 60;   // 縦方向のブレが大きい場合は除外（縦スクロールと区別）
+        const MAX_DURATION = 700;  // 遅いドラッグ操作は除外
+
+        let startX = 0, startY = 0, startTime = 0, tracking = false;
+
+        document.addEventListener('touchstart', (e) => {
+            const target = e.target;
+            if (e.touches.length !== 1 || !target.closest ||
+                target.closest('#map, .sketch-canvas-container, input, textarea, select') ||
+                !target.closest('.accordion-content')) {
+                tracking = false;
+                return;
+            }
+            startX = e.touches[0].clientX;
+            startY = e.touches[0].clientY;
+            startTime = Date.now();
+            tracking = true;
+        }, { passive: true });
+
+        document.addEventListener('touchend', (e) => {
+            if (!tracking) return;
+            tracking = false;
+            const touch = e.changedTouches[0];
+            if (!touch) return;
+            const dx = touch.clientX - startX;
+            const dy = touch.clientY - startY;
+            if (Date.now() - startTime > MAX_DURATION) return;
+            if (Math.abs(dx) < MIN_DISTANCE || Math.abs(dy) > MAX_OFF_AXIS) return;
+
+            const activeHeader = document.querySelector('.accordion-header.active');
+            if (!activeHeader) return;
+            const idx = TAB_ORDER.indexOf(activeHeader.dataset.group);
+            if (idx === -1) return;
+            const nextIdx = dx < 0 ? idx + 1 : idx - 1; // 左スワイプ→次のタブ、右スワイプ→前のタブ
+            if (nextIdx < 0 || nextIdx >= TAB_ORDER.length) return;
+            uiHelper.activateSection(TAB_ORDER[nextIdx]);
+        }, { passive: true });
+    })();
+
     const updateS = (item) => {
         const header = document.querySelector(`.accordion-header[data-group="${item.dataset.group}"]`);
         const s = header ? header.querySelector('.summary-text') : null;
