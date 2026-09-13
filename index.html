@@ -52,8 +52,9 @@ body { margin: 0; padding: 0; background-color: #666; font-family: sans-serif; d
 .leaflet-draw-draw-circlemarker { background-image: none !important; position: relative; }
 .leaflet-draw-draw-circlemarker::before { content: 'T'; font-weight: bold; font-family: serif; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 18px; color: #0000ff; }
 .map-text-wrapper { pointer-events: auto !important; }
-.map-text-wrapper::after { content: ''; position: absolute; top: 0; left: 0; width: 10px; height: 10px; background-color: #0000ff; border: 1px solid white; border-radius: 50%; transform: translate(-50%, -50%); z-index: 10; }
-.map-text-label-inner { display: inline-block; background: rgba(255, 255, 255, 0.85); color: #0000ff; padding: 2px 8px; border: 1.5px solid #0000ff; border-radius: 4px; font-weight: bold; font-size: 14px; white-space: nowrap; transform: translate(-50%, -120%); box-shadow: 0 2px 6px rgba(0,0,0,0.3); }
+.map-text-wrapper::after { content: ''; position: absolute; top: 0; left: 0; width: 10px; height: 10px; background-color: #ff0000; border: 1px solid white; border-radius: 50%; transform: translate(-50%, -50%); z-index: 10; }
+.map-text-label-inner { display: inline-block; background: #ffffff; color: #ff0000; padding: 2px 8px; border: 1.5px solid #ff0000; border-radius: 4px; font-weight: bold; font-size: 13px; white-space: nowrap; transform: translate(-50%, -85%); box-shadow: 0 2px 6px rgba(0,0,0,0.4); }
+.map-leader-btn { background: #ffffff !important; background-image: none !important; color: #000000 !important; font-weight: bold; font-size: 15px; }
 
 /* Leaflet Drawのツールチップ非表示 */
 .leaflet-draw-tooltip { display: none !important; }
@@ -3270,11 +3271,10 @@ window.mapApp = {
                 options: { position: 'topleft' },
                 onAdd: function() {
                     const div = L.DomUtil.create('div', 'leaflet-bar leaflet-draw-toolbar');
-                    const btn = L.DomUtil.create('a', '', div);
+                    const btn = L.DomUtil.create('a', 'map-leader-btn', div);
                     btn.href = '#';
                     btn.title = '引き出し線＋テキスト注記（地図上で引き出し元→テキスト位置の順にクリック）';
                     btn.textContent = 'A';
-                    btn.style.fontWeight = 'bold';
                     L.DomEvent.disableClickPropagation(div);
                     L.DomEvent.on(btn, 'click', (e) => { L.DomEvent.preventDefault(e); mapApp.armLeaderTool(); });
                     return div;
@@ -3293,6 +3293,7 @@ window.mapApp = {
         this._leaderAnchor = null;
         let anchorMarker = null;
         this.map.getContainer().style.cursor = 'crosshair';
+        if (window.uiHelper) uiHelper.showToast('地図上で「引き出し元」→「テキスト位置」の順にクリックしてください');
 
         const cancel = () => {
             this._leaderArmed = false;
@@ -3306,17 +3307,18 @@ window.mapApp = {
         const onClick = (e) => {
             if (!this._leaderAnchor) {
                 this._leaderAnchor = e.latlng;
-                anchorMarker = L.circleMarker(e.latlng, { radius: 5, color: '#0000ff', weight: 2, fillColor: '#0000ff', fillOpacity: 1 }).addTo(this.map);
+                anchorMarker = L.circleMarker(e.latlng, { radius: 5, color: '#ff0000', weight: 2, fillColor: '#ff0000', fillOpacity: 1 }).addTo(this.map);
+                if (window.uiHelper) uiHelper.showToast('続けてテキストを表示する位置をクリックしてください');
                 return;
             }
             const anchor = this._leaderAnchor;
             const labelLatLng = e.latlng;
             cancel();
 
-            const line = L.polyline([anchor, labelLatLng], { color: '#0000ff', weight: 2, dashArray: '4,4' });
+            const line = L.polyline([anchor, labelLatLng], { color: '#ff0000', weight: 2, dashArray: '4,4' });
             line.options.isMain = false;
             this.allDrawnItems.addLayer(line);
-            const endMarker = L.circleMarker(labelLatLng, { radius: 5, color: '#0000ff', weight: 2, fillColor: '#0000ff', fillOpacity: 1 }).addTo(this.map);
+            const endMarker = L.circleMarker(labelLatLng, { radius: 5, color: '#ff0000', weight: 2, fillColor: '#ff0000', fillOpacity: 1 }).addTo(this.map);
 
             const text = prompt('注記のテキストを入力してください');
             this.map.removeLayer(endMarker);
