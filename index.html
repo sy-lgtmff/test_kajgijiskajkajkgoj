@@ -3199,8 +3199,9 @@ window.mapApp = {
                 }
             } else if (layer.setStyle) {
                 layer.setStyle({ color: isM ? '#ff0000' : '#0000ff', weight: 6, opacity: 0.7, fillOpacity: 0.4 });
+                if (!isM) mapApp._bindShapeStylePopup(layer);
             }
-            this.allDrawnItems.addLayer(layer); 
+            this.allDrawnItems.addLayer(layer);
             this.updateMapSummary();
         });
         
@@ -3215,6 +3216,42 @@ window.mapApp = {
         });
     },
 
+    // mainGeom/subGeomのGeoJSONから描画レイヤーを復元する共通処理。load()（自動保存からの復元）と
+    // importZip()（自分がエクスポートしたJZIPの再インポート）の両方から呼び出す。
+    // color/weight/opacity/fillColor/fillOpacity・円のisCircle+radiusがproperties内にあれば
+    // それを使って復元し（ユーザーがポップアップで変更した図形も再現）、無ければ従来通りのデフォルト値を使う。
+    _restoreDrawnGeom(geom, isM) {
+        if (!geom) return;
+        L.geoJSON(geom, {
+            pointToLayer: (feature, latlng) => {
+                const props = feature.properties || {};
+                if (props.isCircle) return L.circle(latlng, { radius: props.radius || 10 });
+                return (isM && !props.isText) ? L.circle(latlng, { radius: 10, color: '#ff0000', weight: 6, fillOpacity: 0 }) : L.marker(latlng);
+            }
+        }).eachLayer(l => {
+            if (!l.options) l.options = {};
+            l.options.isMain = isM;
+            const props = (l.feature && l.feature.properties) || {};
+            if (props.isText) {
+                mapApp.allDrawnItems.addLayer(mapApp.createTextLayer(l.getLatLng(), props.textVal));
+                return;
+            }
+            const isLegacyMainCircle = (isM && l instanceof L.Circle && !props.isCircle);
+            if (l.setStyle && !isLegacyMainCircle) {
+                const style = {
+                    color: props.color || (isM ? '#ff0000' : '#0000ff'),
+                    weight: props.weight !== undefined ? props.weight : 6,
+                    opacity: props.opacity !== undefined ? props.opacity : 0.7,
+                    fillOpacity: props.fillOpacity !== undefined ? props.fillOpacity : (props.isCircle ? 0.15 : undefined)
+                };
+                if (props.fillColor) style.fillColor = props.fillColor;
+                l.setStyle(style);
+            }
+            if (isM && l instanceof L.Marker) { l.options.icon = new L.Icon.Default(); l.on('add', () => { if (l._icon) l._icon.classList.add('marker-red'); }); }
+            mapApp.allDrawnItems.addLayer(l);
+        });
+    },
+
     setMode(mode) {
         this.currentMode = mode;
         if(this.drawControl) this.map.removeControl(this.drawControl);
@@ -3223,9 +3260,115 @@ window.mapApp = {
             edit: { featureGroup: this.allDrawnItems, remove: true },
             draw: mode === 'main' 
             ? { marker: true, polyline: { shapeOptions: { color: '#ff0000', weight: 6 } }, polygon: false, circle: false, rectangle: false, circlemarker: false }
-            : { marker: true, polyline: { shapeOptions: { color: '#0000ff', weight: 4 } }, polygon: { shapeOptions: { color: '#0000ff', fillOpacity: 0.4 } }, circlemarker: true, circle: false, rectangle: false }
+            : { marker: true, polyline: { shapeOptions: { color: '#0000ff', weight: 4 } }, polygon: { shapeOptions: { color: '#0000ff', fillOpacity: 0.4 } }, circle: { shapeOptions: { color: '#0000ff', weight: 4, fillOpacity: 0.15 } }, circlemarker: true, rectangle: false }
         });
         this.map.addControl(this.drawControl);
+
+        if (!this._leaderControlAdded) {
+            this._leaderControlAdded = true;
+            const LeaderControl = L.Control.extend({
+                options: { position: 'topleft' },
+                onAdd: function() {
+                    const div = L.DomUtil.create('div', 'leaflet-bar leaflet-draw-toolbar');
+                    const btn = L.DomUtil.create('a', '', div);
+                    btn.href = '#';
+                    btn.title = '引き出し線＋テキスト注記（地図上で引き出し元→テキスト位置の順にクリック）';
+                    btn.textContent = 'A';
+                    btn.style.fontWeight = 'bold';
+                    L.DomEvent.disableClickPropagation(div);
+                    L.DomEvent.on(btn, 'click', (e) => { L.DomEvent.preventDefault(e); mapApp.armLeaderTool(); });
+                    return div;
+                }
+            });
+            new LeaderControl().addTo(this.map);
+        }
+    },
+
+    // 引き出し線＋テキスト注記ツール（サブ注記としてallDrawnItemsに追加、isMain:falseなのでsubGeomに出力される）。
+    // 地図上で「引き出し元」→「テキスト位置」の順に2回クリックすると、2点をつなぐ点線と
+    // テキストラベルを設置する。Escキーでキャンセル可能。
+    armLeaderTool() {
+        if (this._leaderArmed) return;
+        this._leaderArmed = true;
+        this._leaderAnchor = null;
+        let anchorMarker = null;
+        this.map.getContainer().style.cursor = 'crosshair';
+
+        const cancel = () => {
+            this._leaderArmed = false;
+            this._leaderAnchor = null;
+            this.map.getContainer().style.cursor = '';
+            this.map.off('click', onClick);
+            document.removeEventListener('keydown', onKey);
+            if (anchorMarker) { this.map.removeLayer(anchorMarker); anchorMarker = null; }
+        };
+        const onKey = (ev) => { if (ev.key === 'Escape') cancel(); };
+        const onClick = (e) => {
+            if (!this._leaderAnchor) {
+                this._leaderAnchor = e.latlng;
+                anchorMarker = L.circleMarker(e.latlng, { radius: 5, color: '#0000ff', weight: 2, fillColor: '#0000ff', fillOpacity: 1 }).addTo(this.map);
+                return;
+            }
+            const anchor = this._leaderAnchor;
+            const labelLatLng = e.latlng;
+            cancel();
+
+            const line = L.polyline([anchor, labelLatLng], { color: '#0000ff', weight: 2, dashArray: '4,4' });
+            line.options.isMain = false;
+            this.allDrawnItems.addLayer(line);
+            const endMarker = L.circleMarker(labelLatLng, { radius: 5, color: '#0000ff', weight: 2, fillColor: '#0000ff', fillOpacity: 1 }).addTo(this.map);
+
+            const text = prompt('注記のテキストを入力してください');
+            this.map.removeLayer(endMarker);
+            if (!text) { this.allDrawnItems.removeLayer(line); return; }
+
+            this.allDrawnItems.addLayer(this.createTextLayer(labelLatLng, text));
+            mapApp._bindShapeStylePopup(line);
+            this.updateMapSummary();
+        };
+        this.map.on('click', onClick);
+        document.addEventListener('keydown', onKey);
+    },
+
+    // 描いた図形（ライン・円・範囲）をクリックするといつでも開けるポップアップに、
+    // 色・太さ・透明度の変更UIを設置する。layer.setStyle()で即座に反映される。
+    // 変更した値はgetFormData()でGeoJSONのpropertiesに保存され、再インポート時に復元される。
+    _bindShapeStylePopup(layer) {
+        const wrap = document.createElement('div');
+        wrap.style.cssText = 'display:flex; flex-direction:column; gap:6px; min-width:160px;';
+        wrap.innerHTML =
+            `<label style="font-size:0.75rem; display:flex; align-items:center; gap:6px;">色<input type="color" style="flex:1; height:24px; padding:0; border:none; cursor:pointer;"></label>` +
+            `<label style="font-size:0.75rem; display:flex; align-items:center; gap:6px;">太さ<input type="range" min="1" max="12" step="1" style="flex:1;"><span style="font-size:0.7rem; min-width:2em; text-align:right;"></span></label>` +
+            `<label style="font-size:0.75rem; display:flex; align-items:center; gap:6px;">透明度<input type="range" min="0.1" max="1" step="0.1" style="flex:1;"><span style="font-size:0.7rem; min-width:2em; text-align:right;"></span></label>`;
+
+        const colorInput = wrap.querySelector('input[type="color"]');
+        const rangeInputs = wrap.querySelectorAll('input[type="range"]');
+        const labels = wrap.querySelectorAll('span');
+        const weightInput = rangeInputs[0], opacityInput = rangeInputs[1];
+        const weightLabel = labels[0], opacityLabel = labels[1];
+
+        const initColor = /^#/.test(layer.options.color || '') ? layer.options.color : '#0000ff';
+        const initWeight = layer.options.weight || 4;
+        const initOpacity = (layer.options.opacity === undefined || layer.options.opacity === null) ? 1 : layer.options.opacity;
+        colorInput.value = initColor;
+        weightInput.value = initWeight;
+        weightLabel.textContent = initWeight;
+        opacityInput.value = initOpacity;
+        opacityLabel.textContent = Number(initOpacity).toFixed(1);
+
+        colorInput.oninput = () => layer.setStyle({ color: colorInput.value, fillColor: colorInput.value });
+        weightInput.oninput = () => {
+            const v = Number(weightInput.value);
+            weightLabel.textContent = v;
+            layer.setStyle({ weight: v });
+        };
+        opacityInput.oninput = () => {
+            const v = Number(opacityInput.value);
+            opacityLabel.textContent = v.toFixed(1);
+            layer.setStyle({ opacity: v });
+        };
+
+        layer.bindPopup(wrap);
     },
 
     clearLayers() { if (confirm("全ての図形を消去しますか？")) { this.allDrawnItems.clearLayers(); this.updateMapSummary(); } },
@@ -4474,23 +4617,8 @@ window.storageManager = {
                 mapApp.init();
                 if (mapApp.map && mapApp.allDrawnItems) {
                     mapApp.allDrawnItems.clearLayers();
-                    const restoreGeom = (geom, isM) => {
-                        if (!geom) return;
-                        L.geoJSON(geom, {
-                            pointToLayer: (feature, latlng) => (isM && !feature.properties.isText) ? L.circle(latlng, { radius: 10, color: '#ff0000', weight: 6, fillOpacity: 0 }) : L.marker(latlng)
-                        }).eachLayer(l => {
-                            if(!l.options) l.options = {}; l.options.isMain = isM;
-                            if (l.feature.properties && l.feature.properties.isText) {
-                                mapApp.allDrawnItems.addLayer(mapApp.createTextLayer(l.getLatLng(), l.feature.properties.textVal));
-                            } else {
-                                if (l.setStyle && !(l instanceof L.Circle)) l.setStyle({ color: isM ? '#ff0000' : '#0000ff', weight: 6, opacity: 0.7 });
-                                if (isM && l instanceof L.Marker) { l.options.icon = new L.Icon.Default(); l.on('add', () => { if(l._icon) l._icon.classList.add('marker-red'); }); }
-                                mapApp.allDrawnItems.addLayer(l);
-                            }
-                        });
-                    };
-                    restoreGeom(json.mainGeom, true);
-                    restoreGeom(json.subGeom, false);
+                    mapApp._restoreDrawnGeom(json.mainGeom, true);
+                    mapApp._restoreDrawnGeom(json.subGeom, false);
                     mapApp.updateMapSummary();
                 }
             }
@@ -4532,6 +4660,17 @@ window.appControl = {
             mapApp.allDrawnItems.eachLayer(l => {
                 const geo = l.toGeoJSON(); geo.properties.isMain = !!(l.options && l.options.isMain);
                 if (l.options && l.options.isText) { geo.properties.isText = true; geo.properties.textVal = l.options.textVal; }
+                // ユーザーが色・太さ・透明度をポップアップで変更した図形（円含む）を再インポート時にも
+                // 再現できるよう、スタイル値をpropertiesに保存する。円はGeoJSON化するとPoint扱いで
+                // 半径情報が失われるため、isCircle・radiusも別途保存する。
+                if (l instanceof L.Circle) { geo.properties.isCircle = true; geo.properties.radius = l.getRadius(); }
+                if (l.options) {
+                    if (l.options.color) geo.properties.color = l.options.color;
+                    if (l.options.weight !== undefined) geo.properties.weight = l.options.weight;
+                    if (l.options.opacity !== undefined) geo.properties.opacity = l.options.opacity;
+                    if (l.options.fillColor) geo.properties.fillColor = l.options.fillColor;
+                    if (l.options.fillOpacity !== undefined) geo.properties.fillOpacity = l.options.fillOpacity;
+                }
                 if (l.options && l.options.isMain) main.push(geo); else sub.push(geo);
             });
         }
@@ -4637,22 +4776,9 @@ window.appControl = {
                 if (el) { el.value = json[k]; el.dispatchEvent(new Event('input')); }
             });
             mapApp.init(); mapApp.allDrawnItems.clearLayers();
-            const restore = (geom, isM) => {
-                if (!geom) return;
-                L.geoJSON(geom, {
-                    pointToLayer: (feature, latlng) => (isM && !feature.properties.isText) ? L.circle(latlng, { radius: 10, color: '#ff0000', weight: 6, fillOpacity: 0 }) : L.marker(latlng)
-                }).eachLayer(l => {
-                    if(!l.options) l.options = {}; l.options.isMain = isM;
-                    if (l.feature.properties && l.feature.properties.isText) {
-                        mapApp.allDrawnItems.addLayer(mapApp.createTextLayer(l.getLatLng(), l.feature.properties.textVal));
-                    } else { 
-                        if (l.setStyle && !(l instanceof L.Circle)) { l.setStyle({ color: isM ? '#ff0000' : '#0000ff', weight: 6, opacity: 0.7 }); }
-                        if (isM && l instanceof L.Marker) { l.options.icon = new L.Icon.Default(); l.on('add', () => { if(l._icon) l._icon.classList.add('marker-red'); }); } 
-                        mapApp.allDrawnItems.addLayer(l); 
-                    }
-                });
-            };
-            restore(json.mainGeom, true); restore(json.subGeom, false); mapApp.updateMapSummary();
+            mapApp._restoreDrawnGeom(json.mainGeom, true);
+            mapApp._restoreDrawnGeom(json.subGeom, false);
+            mapApp.updateMapSummary();
             photoApp.photos = [];
             for (const p of json.photoList) {
                 const b64 = await zip.file(`photos/${p.fileName}`).async("base64");
