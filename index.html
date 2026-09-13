@@ -179,6 +179,7 @@ canvas.sketch-canvas { display: block; width: 100%; }
             <div class="input-group"><label>整理番号</label><input type="text" name="ref_no"></div>
             <div class="input-group"><label>調査日</label><input type="date" name="survey_date" id="default-date"></div>
             <div class="input-group"><label>災害番号</label><input type="text" name="disaster_no"></div>
+            <div class="input-group"><label>業務箇所</label><input type="text" name="work_location"></div>
         </div>
     </div>
 
@@ -362,19 +363,19 @@ canvas.sketch-canvas { display: block; width: 100%; }
                 <label style="font-size:0.7rem; color:#666;">出力ファイル名構成</label>
                 <div style="display:flex; gap:2px; margin-top:5px;">
                     <select class="fn-part" id="fn1">
-                        <option value="survey_date">調査日</option><option value="company_id">会社ID</option><option value="leader_name">班長</option><option value="ref_no">整理番号</option><option value="disaster_no">災害番号</option><option value="none">なし</option>
+                        <option value="survey_date">調査日</option><option value="company_id">会社ID</option><option value="leader_name">班長</option><option value="ref_no">整理番号</option><option value="work_location" selected>業務箇所</option><option value="time">時刻</option><option value="disaster_no">災害番号</option><option value="none">なし</option>
                     </select>
                     <select class="fn-part" id="fn2">
-                        <option value="survey_date">調査日</option><option value="company_id">会社ID</option><option value="leader_name">班長</option><option value="ref_no">整理番号</option><option value="disaster_no" selected>災害番号</option><option value="none">なし</option>
+                        <option value="survey_date" selected>調査日</option><option value="company_id">会社ID</option><option value="leader_name">班長</option><option value="ref_no">整理番号</option><option value="work_location">業務箇所</option><option value="time">時刻</option><option value="disaster_no">災害番号</option><option value="none">なし</option>
                     </select>
                     <select class="fn-part" id="fn3">
-                        <option value="survey_date">調査日</option><option value="company_id">会社ID</option><option value="leader_name">班長</option><option value="ref_no">整理番号</option><option value="disaster_no">災害番号</option><option value="none" selected>なし</option>
+                        <option value="survey_date">調査日</option><option value="company_id">会社ID</option><option value="leader_name">班長</option><option value="ref_no">整理番号</option><option value="work_location">業務箇所</option><option value="time" selected>時刻</option><option value="disaster_no">災害番号</option><option value="none">なし</option>
                     </select>
                     <select class="fn-part" id="fn4">
-                        <option value="survey_date">調査日</option><option value="company_id">会社ID</option><option value="leader_name">班長</option><option value="ref_no">整理番号</option><option value="disaster_no">災害番号</option><option value="none" selected>なし</option>
+                        <option value="survey_date">調査日</option><option value="company_id">会社ID</option><option value="leader_name">班長</option><option value="ref_no">整理番号</option><option value="work_location">業務箇所</option><option value="time">時刻</option><option value="disaster_no">災害番号</option><option value="none" selected>なし</option>
                     </select>
                     <select class="fn-part" id="fn5">
-                        <option value="survey_date">調査日</option><option value="company_id">会社ID</option><option value="leader_name">班長</option><option value="ref_no">整理番号</option><option value="disaster_no">災害番号</option><option value="none" selected>なし</option>
+                        <option value="survey_date">調査日</option><option value="company_id">会社ID</option><option value="leader_name">班長</option><option value="ref_no">整理番号</option><option value="work_location">業務箇所</option><option value="time">時刻</option><option value="disaster_no">災害番号</option><option value="none" selected>なし</option>
                     </select>
                 </div>
             </div>
@@ -4609,8 +4610,8 @@ window.appControl = {
     },
     exportCSV() {
         const d = this.getFormData(); const c = window.mapApp.getMainCoords();
-        const headers = ["調査日","会社ID","調査班長名","整理番号","災害番号","起点座標","終点座標","写真枚数"];
-        const row = [d.survey_date, d.company_id, d.leader_name, d.ref_no, d.disaster_no, c.start, c.end, window.photoApp.photos.length]
+        const headers = ["調査日","会社ID","調査班長名","整理番号","業務箇所","災害番号","起点座標","終点座標","写真枚数"];
+        const row = [d.survey_date, d.company_id, d.leader_name, d.ref_no, d.work_location, d.disaster_no, c.start, c.end, window.photoApp.photos.length]
                     .map(v => `"${(v || "").toString().replace(/"/g, '""')}"`);
         const a = document.createElement('a');
         a.href = URL.createObjectURL(new Blob(["\uFEFF" + headers.join(",") + "\n" + row.join(",")], {type:"text/csv"}));
@@ -4665,7 +4666,7 @@ window.appControl = {
             if (el.type !== 'button' && el.type !== 'file' && el.type !== 'radio') el.value = '';
             if (el.tagName === 'SELECT') el.selectedIndex = 0;
         });
-        const defaults = ['survey_date', 'disaster_no', 'none', 'none', 'none'];
+        const defaults = ['work_location', 'survey_date', 'time', 'none', 'none'];
         for(let i=1; i<=5; i++) {
             const sel = document.getElementById('fn'+i);
             if(sel) sel.value = defaults[i-1];
@@ -4856,7 +4857,16 @@ window.appControl = {
             const sel = document.getElementById(id);
             if (!sel) return;
             const v = sel.value;
-            if (v !== 'none') p.push((d[v] || 'null').toString().replace(/-/g, ''));
+            if (v === 'none') return;
+            if (v === 'time') {
+                // 出力（保存）時点の時刻をHHMM形式で付与する（例: 8時30分 → "0830"）
+                const now = new Date();
+                const hh = String(now.getHours()).padStart(2, '0');
+                const mm = String(now.getMinutes()).padStart(2, '0');
+                p.push(hh + mm);
+                return;
+            }
+            p.push((d[v] || 'null').toString().replace(/-/g, ''));
         });
         return p.join('_') || 'survey';
     }
