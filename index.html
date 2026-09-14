@@ -52,9 +52,12 @@ body { margin: 0; padding: 0; background-color: #666; font-family: sans-serif; d
 .leaflet-draw-draw-circlemarker { background-image: none !important; position: relative; }
 .leaflet-draw-draw-circlemarker::before { content: 'T'; font-weight: bold; font-family: serif; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 18px; color: #0000ff; }
 .map-text-wrapper { pointer-events: auto !important; }
-.map-text-wrapper::after { content: ''; position: absolute; top: 0; left: 0; width: 10px; height: 10px; background-color: #ff0000; border: 1px solid white; border-radius: 50%; transform: translate(-50%, -50%); z-index: 10; }
-.map-text-label-inner { display: inline-block; background: #ffffff; color: #ff0000; padding: 2px 8px; border: 1.5px solid #ff0000; border-radius: 4px; font-weight: bold; font-size: 13px; white-space: nowrap; transform: translate(-50%, -85%); box-shadow: 0 2px 6px rgba(0,0,0,0.4); }
+.map-text-label-inner { display: inline-block; background: #ffffff; color: #ff0000; padding: 2px 8px; border: 1.5px solid #ff0000; border-radius: 4px; font-weight: bold; font-size: 13px; white-space: pre; transform: translate(-50%, -60%); box-shadow: 0 2px 6px rgba(0,0,0,0.4); cursor: move; }
 .map-leader-btn { background: #ffffff !important; background-image: none !important; color: #000000 !important; font-weight: bold; font-size: 15px; }
+#map.map-text-hidden .map-text-wrapper { display: none !important; }
+.map-text-toggle-panel { background: rgba(255,255,255,0.9); padding: 4px 8px; border-radius: 4px; box-shadow: 0 1px 4px rgba(0,0,0,0.3); font-size: 0.75rem; }
+.map-text-toggle-panel label { display: flex; align-items: center; gap: 4px; cursor: pointer; white-space: nowrap; }
+.map-text-toggle-panel input { width: 14px; height: 14px; }
 
 /* Leaflet Drawのツールチップ非表示 */
 .leaflet-draw-tooltip { display: none !important; }
@@ -617,6 +620,18 @@ canvas.sketch-canvas { display: block; width: 100%; }
             <div class="custom-modal-actions" style="flex-direction: column; gap:10px;">
                 <button type="button" class="btn-sub" style="background:#c0392b; color:white;" onclick="window.uiHelper.confirmReset()">消去する</button>
                 <button type="button" class="btn-sub" onclick="window.uiHelper.closeModal()">キャンセル</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 地図テキスト入力モーダル -->
+    <div id="modal-map-text" class="custom-modal-overlay">
+        <div class="custom-modal-box">
+            <div class="custom-modal-title" id="map-text-modal-title">注記テキストを入力</div>
+            <textarea id="map-text-input" rows="4" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:4px; font-size:0.95rem; box-sizing:border-box; resize:vertical; font-family:inherit;" placeholder="テキストを入力してください（改行可）"></textarea>
+            <div class="custom-modal-actions">
+                <button type="button" class="btn-sub" onclick="window.uiHelper.cancelMapTextInput()">キャンセル</button>
+                <button type="button" class="btn-main" onclick="window.uiHelper.confirmMapTextInput()">OK</button>
             </div>
         </div>
     </div>
@@ -3189,9 +3204,13 @@ window.mapApp = {
             layer.options.isMain = isM;
 
             if (e.layerType === 'circlemarker') {
-                const txt = prompt("注釈を入力してください");
-                if (!txt) return;
-                layer = this.createTextLayer(layer.getLatLng(), txt);
+                const latlng = layer.getLatLng();
+                window.uiHelper.promptMapText("").then(txt => {
+                    if (!txt) return;
+                    this.allDrawnItems.addLayer(this.createTextLayer(latlng, txt));
+                    this.updateMapSummary();
+                });
+                return;
             } else if (e.layerType === 'marker') {
                 if (isM) {
                     layer = L.circle(layer.getLatLng(), { radius: 10, color: '#ff0000', weight: 6, fillOpacity: 0 });
@@ -3210,10 +3229,37 @@ window.mapApp = {
         this.map.on(L.Draw.Event.DELETED, () => this.updateMapSummary());
     },
 
+    // テキスト注記マーカーを生成する。ドラッグで位置変更、クリックで内容編集ダイアログを開ける。
+    // _leaderLine（同時に張った引き出し線）が設定されている場合はドラッグ時に線の先端も追従させる。
     createTextLayer(latlng, txt) {
-        return L.marker(latlng, {
-            icon: L.divIcon({ className: 'map-text-wrapper', html: `<div class="map-text-label-inner">${txt}</div>` }),
-            isText: true, textVal: txt, isMain: false
+        const layer = L.marker(latlng, {
+            icon: L.divIcon({ className: 'map-text-wrapper', html: `<div class="map-text-label-inner"></div>` }),
+            isText: true, textVal: txt, isMain: false, draggable: true
+        });
+        layer.on('add', () => mapApp._renderTextLayerContent(layer));
+        layer.on('dragend', () => {
+            if (layer._leaderLine) {
+                const latlngs = layer._leaderLine.getLatLngs();
+                latlngs[1] = layer.getLatLng();
+                layer._leaderLine.setLatLngs(latlngs);
+            }
+        });
+        layer.on('click', () => mapApp._editTextLayer(layer));
+        return layer;
+    },
+
+    // divIcon内のテキスト表示を更新する（HTMLエスケープのためtextContentを使用、改行はCSS pre-wrapで表現）。
+    _renderTextLayerContent(layer) {
+        const el = layer._icon && layer._icon.querySelector('.map-text-label-inner');
+        if (el) el.textContent = layer.options.textVal || "";
+    },
+
+    // 既存のテキスト注記をクリックした時に内容編集ダイアログを開く。
+    _editTextLayer(layer) {
+        window.uiHelper.promptMapText(layer.options.textVal || "", "注記テキストを編集").then(txt => {
+            if (!txt) return;
+            layer.options.textVal = txt;
+            mapApp._renderTextLayerContent(layer);
         });
     },
 
@@ -3223,18 +3269,26 @@ window.mapApp = {
     // それを使って復元し（ユーザーがポップアップで変更した図形も再現）、無ければ従来通りのデフォルト値を使う。
     _restoreDrawnGeom(geom, isM) {
         if (!geom) return;
+        const leaderLinesById = {}, pendingTextLinks = [];
         L.geoJSON(geom, {
             pointToLayer: (feature, latlng) => {
                 const props = feature.properties || {};
                 if (props.isCircle) return L.circle(latlng, { radius: props.radius || 10 });
+                if (props.isAnchorDot) return L.circleMarker(latlng, { radius: 5 });
                 return (isM && !props.isText) ? L.circle(latlng, { radius: 10, color: '#ff0000', weight: 6, fillOpacity: 0 }) : L.marker(latlng);
             }
         }).eachLayer(l => {
             if (!l.options) l.options = {};
             l.options.isMain = isM;
             const props = (l.feature && l.feature.properties) || {};
+            if (props.isAnchorDot) l.options.isAnchorDot = true;
             if (props.isText) {
-                mapApp.allDrawnItems.addLayer(mapApp.createTextLayer(l.getLatLng(), props.textVal));
+                const textLayer = mapApp.createTextLayer(l.getLatLng(), props.textVal);
+                if (props.leaderGroupId) {
+                    textLayer.options.leaderGroupId = props.leaderGroupId;
+                    pendingTextLinks.push({ textLayer, leaderGroupId: props.leaderGroupId });
+                }
+                mapApp.allDrawnItems.addLayer(textLayer);
                 return;
             }
             const isLegacyMainCircle = (isM && l instanceof L.Circle && !props.isCircle);
@@ -3249,7 +3303,14 @@ window.mapApp = {
                 l.setStyle(style);
             }
             if (isM && l instanceof L.Marker) { l.options.icon = new L.Icon.Default(); l.on('add', () => { if (l._icon) l._icon.classList.add('marker-red'); }); }
+            if (props.leaderGroupId) {
+                l.options.leaderGroupId = props.leaderGroupId;
+                if (l instanceof L.Polyline) leaderLinesById[props.leaderGroupId] = l;
+            }
             mapApp.allDrawnItems.addLayer(l);
+        });
+        pendingTextLinks.forEach(({ textLayer, leaderGroupId }) => {
+            if (leaderLinesById[leaderGroupId]) textLayer._leaderLine = leaderLinesById[leaderGroupId];
         });
     },
 
@@ -3281,6 +3342,46 @@ window.mapApp = {
                 }
             });
             new LeaderControl().addTo(this.map);
+
+            this._textVisible = true;
+            const TextToggleControl = L.Control.extend({
+                options: { position: 'bottomright' },
+                onAdd: function() {
+                    const div = L.DomUtil.create('div', 'map-text-toggle-panel');
+                    div.innerHTML = `<label><input type="checkbox" checked> テキスト表示</label>`;
+                    L.DomEvent.disableClickPropagation(div);
+                    div.querySelector('input').addEventListener('change', (e) => mapApp.setTextVisibility(e.target.checked));
+                    return div;
+                }
+            });
+            new TextToggleControl().addTo(this.map);
+        }
+    },
+
+    // テキスト注記（プレーンテキスト・引き出し線のラベルとも）の表示/非表示を一括切替する。
+    // テキストのdivIconはCSSクラスで隠せるが、引き出し線・先端の赤丸はcanvas描画のPath
+    // （DOM要素を持たない）のためCSSが効かず、レイヤーごとにopacity/fillOpacityを操作する。
+    setTextVisibility(visible) {
+        this._textVisible = visible;
+        this.map.getContainer().classList.toggle('map-text-hidden', !visible);
+        this.allDrawnItems.eachLayer(l => {
+            if (l.options && l.options.leaderGroupId && !l.options.isText) mapApp._setLeaderPartVisible(l, visible);
+        });
+    },
+
+    // 引き出し線・先端の赤丸（canvas Path）1本分の表示/非表示を切り替える。
+    // 非表示化前のopacity/fillOpacityを一時退避しておき、再表示時に復元する
+    // （ユーザーがポップアップで色・太さ・透明度を変更した図形でも元の見た目に戻せる）。
+    _setLeaderPartVisible(layer, visible) {
+        if (!layer.setStyle) return;
+        if (!visible) {
+            if (layer._preHideOpacity === undefined) layer._preHideOpacity = layer.options.opacity;
+            if (layer._preHideFillOpacity === undefined) layer._preHideFillOpacity = layer.options.fillOpacity;
+            layer.setStyle({ opacity: 0, fillOpacity: 0 });
+        } else if (layer._preHideOpacity !== undefined) {
+            layer.setStyle({ opacity: layer._preHideOpacity, fillOpacity: layer._preHideFillOpacity });
+            delete layer._preHideOpacity;
+            delete layer._preHideFillOpacity;
         }
     },
 
@@ -3317,16 +3418,27 @@ window.mapApp = {
 
             const line = L.polyline([anchor, labelLatLng], { color: '#ff0000', weight: 2, dashArray: '4,4' });
             line.options.isMain = false;
+            const leaderGroupId = 'ld_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7);
+            line.options.leaderGroupId = leaderGroupId;
             this.allDrawnItems.addLayer(line);
+            // 引き出し元（テキストとは逆の端）に常設の赤丸を打つ。isAnchorDotで復元時にCircleMarkerとして再現する。
+            const anchorDot = L.circleMarker(anchor, { radius: 5, color: '#ff0000', weight: 2, fillColor: '#ff0000', fillOpacity: 1, isMain: false, isAnchorDot: true, leaderGroupId: leaderGroupId });
+            this.allDrawnItems.addLayer(anchorDot);
+            // テキスト表示チェックボックスが非表示中に作図した場合も、線・赤丸を即座に非表示状態に揃える。
+            if (!this._textVisible) { this._setLeaderPartVisible(line, false); this._setLeaderPartVisible(anchorDot, false); }
             const endMarker = L.circleMarker(labelLatLng, { radius: 5, color: '#ff0000', weight: 2, fillColor: '#ff0000', fillOpacity: 1 }).addTo(this.map);
 
-            const text = prompt('注記のテキストを入力してください');
-            this.map.removeLayer(endMarker);
-            if (!text) { this.allDrawnItems.removeLayer(line); return; }
+            window.uiHelper.promptMapText("").then(text => {
+                this.map.removeLayer(endMarker);
+                if (!text) { this.allDrawnItems.removeLayer(line); this.allDrawnItems.removeLayer(anchorDot); return; }
 
-            this.allDrawnItems.addLayer(this.createTextLayer(labelLatLng, text));
-            mapApp._bindShapeStylePopup(line);
-            this.updateMapSummary();
+                const textLayer = this.createTextLayer(labelLatLng, text);
+                textLayer.options.leaderGroupId = leaderGroupId;
+                textLayer._leaderLine = line;
+                this.allDrawnItems.addLayer(textLayer);
+                mapApp._bindShapeStylePopup(line);
+                this.updateMapSummary();
+            });
         };
         this.map.on('click', onClick);
         document.addEventListener('keydown', onKey);
@@ -4440,6 +4552,31 @@ window.uiHelper = {
         const m = document.getElementById('modal-reset-confirm');
         if (m) m.style.display = 'flex';
     },
+    // 地図の注記テキスト入力用ダイアログ（改行対応）。prompt()の代替。
+    // Promise<string|null>を返す：OK押下でテキスト（空なら null）、キャンセルで null。
+    promptMapText(initial, title) {
+        return new Promise((resolve) => {
+            const m = document.getElementById('modal-map-text');
+            const inp = document.getElementById('map-text-input');
+            const titleEl = document.getElementById('map-text-modal-title');
+            if (!m || !inp) { resolve(null); return; }
+            inp.value = initial || "";
+            if (titleEl) titleEl.textContent = title || "注記テキストを入力";
+            this._mapTextResolve = resolve;
+            m.style.display = 'flex';
+            setTimeout(() => { inp.focus(); inp.select(); }, 0);
+        });
+    },
+    confirmMapTextInput() {
+        const inp = document.getElementById('map-text-input');
+        const val = inp ? inp.value.trim() : "";
+        this.closeModal();
+        if (this._mapTextResolve) { this._mapTextResolve(val || null); this._mapTextResolve = null; }
+    },
+    cancelMapTextInput() {
+        this.closeModal();
+        if (this._mapTextResolve) { this._mapTextResolve(null); this._mapTextResolve = null; }
+    },
     confirmSavePreset() {
         const inp = document.getElementById('preset-name-input');
         if (!inp) return;
@@ -4662,6 +4799,8 @@ window.appControl = {
             mapApp.allDrawnItems.eachLayer(l => {
                 const geo = l.toGeoJSON(); geo.properties.isMain = !!(l.options && l.options.isMain);
                 if (l.options && l.options.isText) { geo.properties.isText = true; geo.properties.textVal = l.options.textVal; }
+                if (l.options && l.options.isAnchorDot) geo.properties.isAnchorDot = true;
+                if (l.options && l.options.leaderGroupId) geo.properties.leaderGroupId = l.options.leaderGroupId;
                 // ユーザーが色・太さ・透明度をポップアップで変更した図形（円含む）を再インポート時にも
                 // 再現できるよう、スタイル値をpropertiesに保存する。円はGeoJSON化するとPoint扱いで
                 // 半径情報が失われるため、isCircle・radiusも別途保存する。
