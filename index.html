@@ -20,7 +20,7 @@
             window.top.location = window.self.location.href;
         }
     </script>
-    <title>現場踏査写真管理アプリ(現場調査用) (Phase 5.94)</title>
+    <title>現場踏査写真管理アプリ(現場調査用) (Phase 5.96)</title>
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
     <link rel="apple-touch-icon" href="icon-192.png">
@@ -157,6 +157,8 @@ body { margin: 0; padding: 0; background-color: #666; font-family: sans-serif; d
     background: #fff; border: none; border-bottom: 3px solid transparent;
     font-weight: bold; font-size: 0.78rem; color: #555; cursor: pointer;
 }
+/* タブ同士の境目が分かりにくかったため、間に薄い縦線を入れる（両端は不要）。 */
+.accordion-header:not(:last-child) { border-right: 1px solid #e0e0e0; }
 .accordion-header:hover { background-color: #f0f0f0; }
 .accordion-header.active { color: var(--accent-color); border-bottom-color: var(--accent-color); }
 .accordion-header .icon { display: none; }
@@ -200,14 +202,18 @@ body { margin: 0; padding: 0; background-color: #666; font-family: sans-serif; d
 .sketch-canvas-container { position: relative; box-shadow: 0 2px 5px rgba(0,0,0,0.1); background: white; cursor: crosshair; touch-action: none; margin-bottom: 5px; }
 canvas.sketch-canvas { display: block; width: 100%; }
 
-/* 白紙メモの「写真に保存」「全消去」フローティングボタン。右下に縦並び
-   （保存が上、消去が下）。地図の「現在地」ボタンと同じ大きさに揃える。
+/* 白紙メモの「写真に保存」「全消去」フローティングボタン。位置図タブの
+   「現在地」「地図を写真に保存」（Leafletのbottomrightコントロール）と
+   ピクセル単位で同じ位置になるよう、実測した座標（right:12px、上段
+   bottom:87px、下段bottom:29px、タッチ時44px/非タッチ時36px）を直接指定
+   している。「保存」を現在地ボタンの位置（上段）に、「全消去」を保存
+   ボタンの位置（下段）に、それぞれ揃える。
    【重要】CSSの"pointer:coarse"メディアクエリはLeaflet独自のL.Browser.touch判定
    （地図側の.leaflet-touch付与に使われる）と一致しないことがあるため使わず、
    同じ判定基準で確実にサイズを揃えるためbody.app-touchクラス（JS側でL.Browser.touch
    を見て付与）で切り替える。 */
 .sketch-icon-btn {
-    position: absolute; right: 10px; background: #fff; color: #333; width: 36px; height: 36px;
+    position: absolute; right: 12px; background: #fff; color: #333; width: 36px; height: 36px;
     display: flex; align-items: center; justify-content: center; border: none;
     border-radius: 4px; box-shadow: 0 1px 5px rgba(0,0,0,0.4); cursor: pointer; padding: 0; z-index: 10;
 }
@@ -216,7 +222,8 @@ canvas.sketch-canvas { display: block; width: 100%; }
 .sketch-icon-btn-trash { bottom: 10px; color: #e74c3c; }
 body.app-touch .sketch-icon-btn { width: 44px; height: 44px; }
 body.app-touch .sketch-icon-btn svg { width: 24px; height: 24px; }
-body.app-touch .sketch-icon-btn-save { bottom: 64px; }
+body.app-touch .sketch-icon-btn-save { bottom: 87px; }
+body.app-touch .sketch-icon-btn-trash { bottom: 29px; }
     </style>
 </head>
 <body>
@@ -546,8 +553,8 @@ body.app-touch .sketch-icon-btn-save { bottom: 64px; }
                 <div id="help-spec" class="help-tab-content">
                 <div class="spec-container">
     <header class="spec-header">
-        <h2>被災状況調査システム 開発仕様書 (Phase 5.94)</h2>
-        <p><strong>Last Updated:</strong> Phase 5.94 (「写真に保存」アイコンの上下バランスが崩れていた不具合を修正。SVGのviewBoxをアイコンの実座標に合わせて計算し直した)</p>
+        <h2>被災状況調査システム 開発仕様書 (Phase 5.96)</h2>
+        <p><strong>Last Updated:</strong> Phase 5.96 (「管理項目」「位置図」「写真」「データ入出力」タブの境目が分かりにくかったため、タブ間に薄い区切り線を追加)</p>
         <span class="spec-status-badge">App A (Stable)</span>
     </header>
 
@@ -689,6 +696,8 @@ body.app-touch .sketch-icon-btn-save { bottom: 64px; }
         <div class="spec-table-wrap">
         <table>
             <tr><th>Phase</th><th>内容</th></tr>
+            <tr><td>5.96</td><td>「管理項目」「位置図」「写真」「データ入出力」の各タブ（.accordion-header）が背景・境界とも同色（白）で、選択していないと境目が分からなかった。`.accordion-header:not(:last-child) { border-right: 1px solid #e0e0e0; }`を追加し、タブ間に薄い区切り線を入れた。</td></tr>
+            <tr><td>5.95</td><td>白紙メモの「保存」「全消去」ボタンの位置を、位置図タブの「現在地」「地図を写真に保存」ボタンの実測位置（Leafletのbottomrightコントロールが計算する座標）にピクセル単位で合わせた。right:10px→12px、上段（保存）bottom:56px/64px→87px、下段（全消去）bottom:10px→29pxに調整し、実測値との誤差1px未満まで一致させた。</td></tr>
             <tr><td>5.94</td><td>「地図を写真に保存」「写真に保存」（ダウンロードアイコン）が上寄りに表示される不具合を修正。元のSVGは`transform="matrix(1,0,0,1,-15,-41.85)"`でviewBox"0 0 320 327"に合わせていたが、Y方向の平行移動量が実際のパス座標（y:20〜270）とviewBoxの高さ（327）の中心に合っておらず、内容が上寄り・下に大きな余白ができていた。transformを使わず、パスの実座標に直接フィットするviewBox"15 5 320 280"に変更し、上下左右とも均等な余白になるようにした。</td></tr>
             <tr><td>5.93</td><td>白紙メモの「写真に保存」「全消去」ボタンも、地図下の固定行（.sketch-actions）からcanvasに重ねるフローティングアイコンボタン（.sketch-icon-btn）に変更。ユーザー提供のダウンロード/ゴミ箱SVGアイコンを使用し、地図の「現在地」ボタンと同じ大きさで右下に縦並び配置（保存が上、消去が下）。サイズの一致には当初pointer:coarseメディアクエリを使ったが、Leaflet自身のL.Browser.touch判定と食い違うことがあったため、body.app-touchクラス（DOMContentLoadedでL.Browser.touchを見て付与）に切り替えて確実に一致させた。</td></tr>
             <tr><td>5.92</td><td>「全て消去」ボタン（mapApp.clearLayers）を削除。「地図を写真に保存」ボタンをユーザー提供のダウンロードSVGアイコンを使ったアイコンボタン（SaveMapControl）にし、「現在地」（LocateControl）と同じ大きさ・スタイル（.map-icon-btn、旧.locate-control-btnから改名）で右下に縦並び配置した。Leafletのbottomright位置は後から追加したコントロールほど地図中心側（上）に積み上がる仕様のため、「現在地」を上にするにはSaveMapControlを先にLocateControlを後にaddTo()する必要があった。</td></tr>
@@ -720,7 +729,7 @@ body.app-touch .sketch-icon-btn-save { bottom: 64px; }
                 <div style="padding: 20px;">
                     <div style="padding: 15px; background: #e8f6f3; border: 1px solid #a2d9ce; border-radius: 4px;">
                         <p style="margin:0 0 10px 0; font-weight:bold; color: #16a085;">アプリ更新管理</p>
-                        <p style="margin:0 0 5px 0; font-size:0.9rem;">現在のバージョン: <strong id="current-version-display">Phase 5.94</strong></p>
+                        <p style="margin:0 0 5px 0; font-size:0.9rem;">現在のバージョン: <strong id="current-version-display">Phase 5.96</strong></p>
                         <div style="display:flex; align-items:center; gap:10px;">
                             <button id="update-app-btn" type="button" class="btn-main" style="width:auto; padding:8px 16px;" onclick="appControl.checkForUpdate()">更新を確認する</button>
                             <span id="update-status" style="font-size:0.9rem; color:#555;"></span>
