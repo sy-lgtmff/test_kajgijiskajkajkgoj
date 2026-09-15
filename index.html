@@ -20,7 +20,7 @@
             window.top.location = window.self.location.href;
         }
     </script>
-    <title>現場踏査写真管理アプリ(現場調査用) (Phase 5.84)</title>
+    <title>現場踏査写真管理アプリ(現場調査用) (Phase 5.88)</title>
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
     <link rel="apple-touch-icon" href="icon-192.png">
@@ -92,6 +92,40 @@ body { margin: 0; padding: 0; background-color: #666; font-family: sans-serif; d
 .help-tab-content { display: none; }
 .help-tab-content.active { display: block; animation: fadeIn 0.2s; }
 
+/* 開発方針タブ（仕様書）のレイアウト */
+.spec-container { padding: 16px; background: #eef1f4; color: #2c3e50; font-size: 0.92rem; line-height: 1.7; }
+.spec-container .spec-header { background: var(--primary-color); color: #fff; border-radius: 8px; padding: 16px 18px; margin-bottom: 18px; }
+.spec-container .spec-header h2 { margin: 0 0 8px 0; font-size: 1.15rem; line-height: 1.4; }
+.spec-container .spec-header p { margin: 4px 0; font-size: 0.82rem; color: rgba(255,255,255,0.9); }
+.spec-container .spec-header .spec-status-badge { display: inline-block; margin-top: 4px; padding: 2px 10px; background: rgba(255,255,255,0.18); border-radius: 12px; font-size: 0.78rem; font-weight: bold; }
+.spec-container section { background: #fff; border-radius: 8px; padding: 16px 18px; margin-bottom: 14px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+.spec-container section > h3 {
+    margin: 0 0 12px 0; padding-bottom: 8px; font-size: 1rem; color: var(--primary-color);
+    border-bottom: 2px solid var(--accent-color); display: flex; align-items: center; gap: 8px;
+}
+.spec-container section > h3::before {
+    content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--accent-color); flex-shrink: 0;
+}
+.spec-container h4 { margin: 18px 0 8px 0; font-size: 0.9rem; color: #34495e; padding-left: 8px; border-left: 4px solid var(--accent-color); }
+.spec-container h4:first-of-type { margin-top: 4px; }
+.spec-container p { margin: 8px 0; }
+.spec-container ul { margin: 8px 0; padding-left: 0; list-style: none; }
+.spec-container li { position: relative; padding: 6px 0 6px 18px; border-bottom: 1px dashed #e5e9ec; }
+.spec-container li:last-child { border-bottom: none; }
+.spec-container li::before { content: "▸"; position: absolute; left: 0; color: var(--accent-color); font-weight: bold; }
+.spec-container li strong { color: var(--primary-color); }
+.spec-container code {
+    background: #eef1f4; color: #c0392b; padding: 1px 5px; border-radius: 3px;
+    font-size: 0.85em; font-family: Menlo, Consolas, monospace;
+}
+.spec-container .spec-table-wrap { overflow-x: auto; margin: 10px 0; border: 1px solid #e0e4e8; border-radius: 6px; }
+.spec-container table { width: 100%; border-collapse: collapse; font-size: 0.82rem; min-width: 480px; }
+.spec-container table th, .spec-container table td { padding: 8px 10px; text-align: left; border-bottom: 1px solid #e5e9ec; vertical-align: top; }
+.spec-container table th { background: var(--primary-color); color: #fff; white-space: nowrap; position: sticky; top: 0; }
+.spec-container table tr:last-child td { border-bottom: none; }
+.spec-container table tr:nth-child(even) td { background: #f7f9fa; }
+.spec-container table td:first-child { white-space: nowrap; font-weight: bold; color: var(--accent-color); }
+
 /* セクションタブ（旧アコーディオン） */
 .section-tabs {
     display: none; background: #fff; border-bottom: 1px solid #ddd;
@@ -114,6 +148,10 @@ body { margin: 0; padding: 0; background-color: #666; font-family: sans-serif; d
 .summary-text.filled { color: var(--accent-color); }
 .accordion-header[data-group="io-area"] .summary-text { font-weight: bold; color: #555; }
 .accordion-content { display: none; padding: 15px; background: #f9f9f9; }
+/* 【重要】位置図エリアの.accordion-contentには"no-padding"クラスが指定されているが、
+   対応するCSSルールが定義されていなかったため、通常のpadding:15pxがそのまま
+   適用され、地図・操作ボタンの上下左右に意図しない余白ができていた。 */
+.accordion-content.no-padding { padding: 0; }
 
 .input-group { margin-bottom: 12px; }
 .input-group label { display: block; font-size: 0.8rem; color: #666; margin-bottom: 4px; }
@@ -477,10 +515,10 @@ canvas.sketch-canvas { display: block; width: 100%; }
                 </div>
                 <div id="help-spec" class="help-tab-content">
                 <div class="spec-container">
-    <header style="border-bottom: 2px solid #333; margin-bottom: 20px; padding-bottom: 10px;">
-        <h2>被災状況調査システム 開発仕様書 (Phase 5.84)</h2>
-        <p><strong>Last Updated:</strong> Phase 5.84 (ベースマップにGoogleタイルを追加（個人カスタマイズ版限定）。「開発方針」タブに「8. 更新履歴」セクションを追加)
-        <p><strong>Status:</strong> App A (Stable)</p>
+    <header class="spec-header">
+        <h2>被災状況調査システム 開発仕様書 (Phase 5.88)</h2>
+        <p><strong>Last Updated:</strong> Phase 5.88 (地図が固定height:55vhだったため、縦長ビューポートで操作ボタン下に大きな空白ができていた不具合を修正。地図の高さを残り領域いっぱいに動的計算するようにした)</p>
+        <span class="spec-status-badge">App A (Stable)</span>
     </header>
 
     <section>
@@ -505,8 +543,9 @@ canvas.sketch-canvas { display: block; width: 100%; }
 
     <section>
         <h3>3. ファイル構成 (File Manifest)</h3>
-        <table style="width:100%; border-collapse: collapse; font-size: 0.9rem;" border="1">
-            <tr style="background:#eee;"><th>Filename</th><th>Role</th><th>Note</th></tr>
+        <div class="spec-table-wrap">
+        <table>
+            <tr><th>Filename</th><th>Role</th><th>Note</th></tr>
             <tr><td><code>build.js</code></td><td>ビルドスクリプト</td><td>App A専用。piexif.jsを先頭に結合する</td></tr>
             <tr><td><code>index.html.template</code></td><td>App A 骨格</td><td>プレースホルダーは /* INSERT: CSS */ 等の形式</td></tr>
             <tr><td><code>style.css</code></td><td>共通スタイル</td><td>CSS変数、アコーディオン、地図UI、スケッチUIを定義</td></tr>
@@ -524,6 +563,7 @@ canvas.sketch-canvas { display: block; width: 100%; }
             <tr><td><code>piexif.js</code></td><td>EXIFライブラリ</td><td>piexifjs v1.0.6。src/直下に配置しビルド時にインライン埋め込み</td></tr>
             <tr><td><code>rogo-AAA.txt</code></td><td>ロゴデータ</td><td>Base64エンコード画像（ビルド時にインライン埋め込み）</td></tr>
         </table>
+        </div>
     </section>
 
     <section>
@@ -553,9 +593,11 @@ canvas.sketch-canvas { display: block; width: 100%; }
             <li>モード：位置図（メイン・赤）/ 地図メモ（サブ・青）/ 白紙メモ（Canvas）/ GPS修正モード</li>
             <li><strong>maxZoom:25（オーバーズーム対応）:</strong> maxNativeZoom:18（地理院）/19（ESRI）でタイルを拡大表示。</li>
             <li><strong>地図初期化タイミング:</strong> storageManager.load()では初期化せず、アコーディオンを開いたときにinvalidateSize()→ペンディングデータ復元の順で実行。DOMサイズ0での初期化を防ぐ。</li>
+            <li><strong>地図の高さを残り領域いっぱいに動的計算（Phase 5.88追加）:</strong> `#map`はHTML上`height:55vh`が初期値だが、mapApp.fitMapHeight()が地図要素の現在位置から#main-content（画面の残り表示領域）の下端までを実測し、操作ボタン行（.map-controls）の高さを差し引いた分を地図の実高さとして動的に割り当てる。縦横比の異なる端末・画面回転・ウィンドウリサイズでも、操作ボタンの下に空白ができないようにするための対策。switchMapMode()（位置図タブを開いた時）とwindow resizeイベントの両方で再計算する。</li>
             <li><strong>地図キャッシュ:</strong> 表示したタイルを自動でCache Storageに蓄積（Stale-While-Revalidate方式）。意図的な一括先読み機能はUI非搭載。</li>
             <li><strong>写真の位置図表示（Phase 5.75追加）:</strong> 位置情報を持つ写真をphotos[]から抽出し、mapApp.photoLayerGroupにカメラアイコン（📷）マーカーとして表示。位置図タブを開くたび（アコーディオン展開・GPS修正フロー開始時）にmapApp.renderPhotoMarkers()で再描画する。</li>
             <li><strong>撮影方向の矢印表示:</strong> azimuth記録済みの写真は、カメラアイコンから赤い矢印を伸ばして撮影方向を示す（0°=真北、時計回りに回転）。azimuth未記録の写真はアイコンのみ。選択中の写真は青リングで強調。マーカータップで写真・タグ・方位・備考をポップアップ表示し、対象写真を選択状態にする。</li>
+            <li><strong>「現在地」ボタンの位置表示（Phase 5.86追加）:</strong> mapApp.setCurrentLocation()はmap.locate({setView:true, maxZoom:16})で地図をパン・ズームするだけで、自分の位置を示すマーカーが表示されていなかった。init()内でmap.on('locationfound', ...)を配線し、取得した座標に青丸マーカー（L.circleMarker）＋精度円（L.circle、半径=accuracy/2）を表示するよう変更。約5秒後にsetTimeoutで自動的に消える。連打された場合は前回のマーカー・円・タイマーを解除してから出し直すため、表示が重複しない。取得失敗時（locationerror）はトースト通知を出す。</li>
         </ul>
 
         <h4>4.4 キャッシュ管理</h4>
@@ -613,8 +655,13 @@ canvas.sketch-canvas { display: block; width: 100%; }
 
     <section>
         <h3>8. 更新履歴</h3>
-        <table style="width:100%; border-collapse: collapse; font-size: 0.85rem;" border="1">
-            <tr style="background:#eee;"><th style="white-space:nowrap;">Phase</th><th>内容</th></tr>
+        <div class="spec-table-wrap">
+        <table>
+            <tr><th>Phase</th><th>内容</th></tr>
+            <tr><td>5.88</td><td>`#map`が固定`height:55vh`だったため、ビューポートの縦横比によっては#main-content（残り全領域）より地図が低くなり、操作ボタンの下に大きな空白ができていた（Phase 5.87の修正はこの根本原因ではなかった）。mapApp.fitMapHeight()を追加し、地図要素の現在位置から#main-content下端までを実測して地図の高さを動的に割り当てるようにした。位置図タブを開いた時・ウィンドウリサイズ時（画面回転含む）に再計算する。</td></tr>
+            <tr><td>5.87</td><td>位置図エリアの`.accordion-content`に`no-padding`クラスが指定されていたが、対応するCSSルールが未定義だったため、通常のpadding:15pxがそのまま適用され、地図・操作ボタンの周囲（特にボタン下）に意図しない余白ができていた。`.accordion-content.no-padding { padding: 0; }`を追加して修正。</td></tr>
+            <tr><td>5.86</td><td>位置図タブの「現在地」ボタン（mapApp.setCurrentLocation）は地図をパン・ズームするだけで自分の位置を示すマーカーが無かったため、Leafletの`locationfound`イベントで取得した座標に青丸マーカー＋精度円（accuracy）を表示するようにした。約5秒後に自動で消える。連打時は前回の表示・タイマーを解除してから出し直す。</td></tr>
+            <tr><td>5.85</td><td>「開発方針」タブのレイアウトが見づらいとの指摘を受け全面改修。カード型のセクション区切り、見出しへの色装飾、リストの行間・区切り線、テーブルのゼブラ配色・横スクロール対応などを追加し、視認性を改善した。</td></tr>
             <tr><td>5.84</td><td>ベースマップにGoogleタイル（マップ／航空写真／ハイブリッド）を追加。個人カスタマイズ版限定・非公式URLのため、Service Workerのキャッシュ対象からは除外（オフライン保存はしない）。「開発方針」タブに本「更新履歴」セクションを追加。</td></tr>
             <tr><td>5.83</td><td>ヘッダータブを整理。「アプリ」タブを「ホーム」に改名し、「アプリ化の手順」「開発方針」を「ヘルプ」タブ内のサブタブに統合。旧「開発方針」末尾のアプリ更新管理を独立した「更新」タブへ移動。</td></tr>
             <tr><td>5.82</td><td>写真キャッシュ（IndexedDB）の信頼性を強化。syncAll()をclear+putの単一トランザクションに変更し、中断時のデータ消失リスクを解消。撮影のたびに二重実行されていたDB同期を1回に削減。「新規調査開始」でIndexedDBの写真キャッシュが削除されない不具合を修正。</td></tr>
@@ -626,6 +673,7 @@ canvas.sketch-canvas { display: block; width: 100%; }
             <tr><td>5.76</td><td>Google Apps Script配信時のiframeサンドボックス脱出処理を追加。</td></tr>
             <tr><td>5.75</td><td>写真の位置図表示を追加。位置情報を持つ写真をカメラアイコンのマーカーとして地図に表示し、撮影方向（azimuth）を矢印で重ねて表示する。</td></tr>
         </table>
+        </div>
     </section>
 </div>
                 </div>
@@ -635,7 +683,7 @@ canvas.sketch-canvas { display: block; width: 100%; }
                 <div style="padding: 20px;">
                     <div style="padding: 15px; background: #e8f6f3; border: 1px solid #a2d9ce; border-radius: 4px;">
                         <p style="margin:0 0 10px 0; font-weight:bold; color: #16a085;">アプリ更新管理</p>
-                        <p style="margin:0 0 5px 0; font-size:0.9rem;">現在のバージョン: <strong id="current-version-display">Phase 5.84</strong></p>
+                        <p style="margin:0 0 5px 0; font-size:0.9rem;">現在のバージョン: <strong id="current-version-display">Phase 5.88</strong></p>
                         <div style="display:flex; align-items:center; gap:10px;">
                             <button id="update-app-btn" type="button" class="btn-main" style="width:auto; padding:8px 16px;" onclick="appControl.checkForUpdate()">更新を確認する</button>
                             <span id="update-status" style="font-size:0.9rem; color:#555;"></span>
@@ -3284,6 +3332,31 @@ window.mapApp = {
         
         this.map.on(L.Draw.Event.EDITED, () => this.updateMapSummary());
         this.map.on(L.Draw.Event.DELETED, () => this.updateMapSummary());
+
+        // 「現在地」ボタン（setCurrentLocation→map.locate）で取得した位置を、
+        // 青丸マーカー＋精度円として一時的に表示する（約5秒後に自動で消える）。
+        // 連打された場合は前回の表示・タイマーを解除してから新しいものを出す。
+        this.map.on('locationfound', (e) => {
+            if (this._currentLocTimer) { clearTimeout(this._currentLocTimer); this._currentLocTimer = null; }
+            if (this._currentLocMarker) { this.map.removeLayer(this._currentLocMarker); this._currentLocMarker = null; }
+            if (this._currentLocCircle) { this.map.removeLayer(this._currentLocCircle); this._currentLocCircle = null; }
+
+            this._currentLocCircle = L.circle(e.latlng, {
+                radius: e.accuracy / 2, color: '#3498db', weight: 1, fillColor: '#3498db', fillOpacity: 0.15
+            }).addTo(this.map);
+            this._currentLocMarker = L.circleMarker(e.latlng, {
+                radius: 8, color: '#fff', weight: 3, fillColor: '#3498db', fillOpacity: 1
+            }).addTo(this.map);
+
+            this._currentLocTimer = setTimeout(() => {
+                if (this._currentLocMarker) { this.map.removeLayer(this._currentLocMarker); this._currentLocMarker = null; }
+                if (this._currentLocCircle) { this.map.removeLayer(this._currentLocCircle); this._currentLocCircle = null; }
+                this._currentLocTimer = null;
+            }, 5000);
+        });
+        this.map.on('locationerror', () => {
+            window.uiHelper && uiHelper.showToast('現在地を取得できませんでした');
+        });
     },
 
     // テキスト注記マーカーを生成する。ドラッグで位置変更、クリックで内容編集ダイアログを開ける。
@@ -3590,6 +3663,30 @@ window.mapApp = {
         });
     },
     setCurrentLocation() { if (this.map) this.map.locate({setView: true, maxZoom: 16}); },
+
+    // 【重要】#mapはheight:55vhの固定高さで作られているが、実際に使える高さ
+    // （#main-contentの残り領域）はビューポートの縦横比・ブラウザchromeの量に
+    // よって55vhより大きくなることがあり、その場合は操作ボタンの下に意図しない
+    // 空白ができてしまう（55vhしか使われず残りが#app-container/#main-contentの
+    // 背景色のまま余ってしまうため）。地図要素の現在位置から#main-contentの
+    // 表示領域下端までを実測し、その分だけ地図の高さを動的に割り当てることで
+    // 常に残り空間いっぱいに地図が表示されるようにする。
+    fitMapHeight() {
+        const mapEl = document.getElementById('map');
+        const mainContent = document.getElementById('main-content');
+        if (!mapEl || !mainContent || mapEl.offsetParent === null) return;
+
+        const controlsEl = document.querySelector('#map-container .map-controls');
+        const controlsHeight = controlsEl ? controlsEl.getBoundingClientRect().height : 0;
+        const mainBottom = mainContent.getBoundingClientRect().bottom;
+        const mapTop = mapEl.getBoundingClientRect().top;
+        const available = Math.round(mainBottom - mapTop - controlsHeight);
+
+        if (available > 200) {
+            mapEl.style.height = available + 'px';
+            if (this.map) this.map.invalidateSize();
+        }
+    },
 
     // =========================================================================
     // 写真の位置図表示（撮影方向は矢印で表示）
@@ -4798,7 +4895,7 @@ window.uiHelper = {
             sketchContainer.style.display = 'none';
             if(window.mapApp && window.mapApp.map) {
                 window.mapApp.setMode(mode === 'map' ? 'main' : 'sub');
-                setTimeout(() => { if (mapApp.map) mapApp.map.invalidateSize(); }, 100);
+                setTimeout(() => { if (mapApp.map) mapApp.fitMapHeight(); }, 100);
             }
         }
     }
@@ -5359,6 +5456,10 @@ document.addEventListener('DOMContentLoaded', () => {
     };
     updateSectionTabsTop();
     window.addEventListener('resize', updateSectionTabsTop);
+
+    // 画面回転・ウィンドウリサイズのたびに地図の高さを残り領域いっぱいに再計算する。
+    // fitMapHeight()自体が「位置図タブが非表示なら何もしない」を内部で判定する。
+    window.addEventListener('resize', () => { if (window.mapApp) mapApp.fitMapHeight(); });
 
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
