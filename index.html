@@ -20,7 +20,7 @@
             window.top.location = window.self.location.href;
         }
     </script>
-    <title>現場踏査写真管理アプリ(現場調査用) (Phase 5.76)</title>
+    <title>現場踏査写真管理アプリ(現場調査用) (Phase 5.78)</title>
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
     <link rel="apple-touch-icon" href="icon-192.png">
@@ -80,7 +80,6 @@ body { margin: 0; padding: 0; background-color: #666; font-family: sans-serif; d
 .app-header { background-color: var(--primary-color); color: white; padding: 10px; position: sticky; top: 0; z-index: 1000; }
 .header-top { display: flex; align-items: center; gap: 10px; height: auto; } 
 .app-title { font-size: 1.2rem; margin: 0; line-height: 1; font-weight: bold; }
-.app-logo { height: 1.2rem; width: auto; }
 .header-tabs { display: flex; margin-top: 10px; gap: 2px; }
 .tab-btn { flex: 1; padding: 8px; border: none; background: rgba(255,255,255,0.1); color: white; cursor: pointer; }
 .tab-btn.active { background: var(--accent-color); font-weight: bold; }
@@ -146,7 +145,6 @@ canvas.sketch-canvas { display: block; width: 100%; }
         <header class="app-header">
     <div class="header-top">
         <h1 class="app-title">現場踏査写真管理アプリ(現場調査用)</h1>
-        <img src="icon-192.png" alt="ロゴ" class="app-logo">
     </div>
     <nav class="header-tabs">
         <button class="tab-btn active" data-target="content-app">アプリ</button>
@@ -282,7 +280,7 @@ canvas.sketch-canvas { display: block; width: 100%; }
 
                 <div style="display:flex; gap:6px; margin-bottom:8px;">
                     <button type="button" id="photo-camera-btn" class="btn-main" style="flex:1; background:#2c3e50;" disabled
-                        onclick="document.getElementById('photo-camera-input').click()">
+                        onclick="photoApp.triggerCameraInput()">
                         📷 撮影（GPS準備中）
                     </button>
                     <button type="button" class="btn-sub" style="flex:1;"
@@ -348,9 +346,16 @@ canvas.sketch-canvas { display: block; width: 100%; }
                         <span style="font-size:0.75rem; color:#888;">で保存</span>
                     </div>
                     <!-- 4:3強制クロップ：縦を基準に左寄せで右側をカット。指定横幅は4:3後の横幅。 -->
-                    <label style="display:flex; align-items:center; gap:8px; font-size:0.85rem; color:#333; cursor:pointer;">
+                    <label style="display:flex; align-items:center; gap:8px; font-size:0.85rem; color:#333; cursor:pointer; margin-bottom:8px;">
                         <input type="checkbox" id="photo-force-43" style="width:18px; height:18px;" checked>
                         強制的に4:3にする（右側をカット）
+                    </label>
+                    <!-- カメラロール保存：撮影直後にOS標準の共有シートを開き「イメージを保存」で
+                         カメラロールにも保存できるようにする（Web Share API。ブラウザの仕様上、
+                         完全な自動保存はできず共有シートでの一手間が必要）。 -->
+                    <label style="display:flex; align-items:center; gap:8px; font-size:0.85rem; color:#333; cursor:pointer;">
+                        <input type="checkbox" id="photo-save-to-roll" style="width:18px; height:18px;" checked>
+                        撮影時にカメラロールにも保存する
                     </label>
                 </div>
 
@@ -460,8 +465,8 @@ canvas.sketch-canvas { display: block; width: 100%; }
             <section id="content-spec" class="tab-content">
                 <div class="spec-container">
     <header style="border-bottom: 2px solid #333; margin-bottom: 20px; padding-bottom: 10px;">
-        <h2>被災状況調査システム 開発仕様書 (Phase 5.76)</h2>
-        <p><strong>Last Updated:</strong> Phase 5.76 (Google Apps Script配信時のiframeサンドボックス脱出処理を追加)
+        <h2>被災状況調査システム 開発仕様書 (Phase 5.78)</h2>
+        <p><strong>Last Updated:</strong> Phase 5.78 (ヘッダー内のロゴ画像を削除)
         <p><strong>Status:</strong> App A (Stable)</p>
     </header>
 
@@ -523,6 +528,8 @@ canvas.sketch-canvas { display: block; width: 100%; }
             <li><strong>GPS修正フロー:</strong> 修正ボタン→写真タブ閉じ→位置図タブ開く（現在ズーム+2）→地図タップ→写真タブに戻る</li>
             <li><strong>JZIPエクスポート時のEXIF書き込み:</strong> piexifjsでGPS座標・方位をJPEGに書き込む。エラー時フォールバック。</li>
             <li><strong>リサイズ横幅指定:</strong> 入出力タグで800/1200/1600/2000px・なしを選択。デフォルト1200px。</li>
+            <li><strong>撮影ボタンの許可待ちロック解除ウォッチドッグ（Phase 5.77強化）:</strong> GPS（gpsManager）・方位センサー（azimuthManager）の許可ダイアログ応答前は撮影ボタンをdisabledにして、iOSでネイティブダイアログとカメラ起動が競合し以後カメラが起動しなくなる不具合を防いでいる（既存の仕組み）。これに加え、(1) ボタンのonclickを直接input.click()にせずphotoApp.triggerCameraInput()を経由させ、実行時にも許可待ち状態を再チェックする二重の安全策、(2) gpsManager.start()・azimuthManager.startListening()の双方に独自のウォッチドッグタイマー（12秒）を追加し、iOS側の許可応答（成功・拒否どちらのコールバック／Promise）が何らかの理由で永遠に返ってこなかった場合でも、一定時間後に強制的にpermissionPendingを解除してボタンを復帰させるようにした。watchPositionのtimeoutオプションは許可待ちも含めてカウントされる仕様のはずだが、iOS実機でこれが機能せずコールバックが呼ばれないまま固まるケースが確認されたための対策。</li>
+            <li><strong>撮影時にカメラロールへも保存（Phase 5.77追加）:</strong> 写真設定に「撮影時にカメラロールにも保存する」チェックボックス（既定ON、初期値保存/読み込み対象）を追加。ONの場合、handleCameraFile内で撮影直後の元画像（リサイズ前のFile）をmanagerApp._saveToCameraRoll()に渡し、Web Share API（navigator.share）でOS標準の共有シートを開く。<strong>注意:</strong> iOS Safariの仕様上、input captureで撮影した写真はWebページに渡されるだけでカメラロールへの自動保存はされず、Webページが無断で写真アプリに書き込むAPIも存在しないため、完全な自動・無音保存は不可能。共有シートでユーザーが「イメージを保存」をタップする一手間が必要になる。navigator.share/canShareが使えない環境（PC等）では何もしない（無害）。</li>
         </ul>
 
         <h4>4.3 地図機能</h4>
@@ -586,7 +593,7 @@ canvas.sketch-canvas { display: block; width: 100%; }
         <h3>7. PWA更新管理</h3>
         <div style="padding: 15px; background: #e8f6f3; border: 1px solid #a2d9ce; border-radius: 4px; margin-top: 10px;">
             <p style="margin:0 0 10px 0; font-weight:bold; color: #16a085;">アプリ更新管理</p>
-            <p style="margin:0 0 5px 0; font-size:0.9rem;">現在のバージョン: <strong id="current-version-display">Phase 5.76</strong></p>
+            <p style="margin:0 0 5px 0; font-size:0.9rem;">現在のバージョン: <strong id="current-version-display">Phase 5.78</strong></p>
             <div style="display:flex; align-items:center; gap:10px;">
                 <button id="update-app-btn" type="button" class="btn-main" style="width:auto; padding:8px 16px;" onclick="appControl.checkForUpdate()">更新を確認する</button>
                 <span id="update-status" style="font-size:0.9rem; color:#555;"></span>
@@ -3958,8 +3965,22 @@ window.gpsManager = {
         this.isStarted = true;
         this.permissionPending = true;
         this._updateUI();
+        // 【重要】watchPositionのtimeoutオプションは仕様上「許可応答待ち」も含めて
+        // カウントされるはずだが、iOS Safariでは許可ダイアログが応答されないまま
+        // 放置される等の状況でtimeoutが機能せず、成功・失敗どちらのコールバックも
+        // 永遠に呼ばれないことがある（既知の不具合）。permissionPendingが立ったままだと
+        // 撮影ボタンが永久に押せなくなるため、アプリ側でも独自にウォッチドッグを仕込み、
+        // 一定時間で強制的にpermissionPendingを解除してボタンを復帰させる。
+        this._pendingWatchdog = setTimeout(() => {
+            if (!this.permissionPending) return;
+            this.permissionPending = false;
+            this.status = 'unavailable';
+            this._updateUI();
+            console.warn("GPS許可の応答待ちがタイムアウトしました。撮影ボタンを復帰します。");
+        }, 12000);
         this._watchId = navigator.geolocation.watchPosition(
             (pos) => {
+                clearTimeout(this._pendingWatchdog);
                 this.permissionPending = false;
                 this.lat      = pos.coords.latitude;
                 this.lng      = pos.coords.longitude;
@@ -3968,6 +3989,7 @@ window.gpsManager = {
                 this._updateUI();
             },
             (err) => {
+                clearTimeout(this._pendingWatchdog);
                 this.permissionPending = false;
                 this.status = 'unavailable';
                 this._updateUI();
@@ -4050,27 +4072,46 @@ window.azimuthManager = {
             typeof DeviceOrientationEvent !== 'undefined' &&
             typeof DeviceOrientationEvent.requestPermission === 'function'
         ) {
-            try {
-                this.permissionPending = true;
-                window.updateCameraBtnState && window.updateCameraBtnState();
-                const response = await DeviceOrientationEvent.requestPermission();
-                this.permissionPending = false;
-                window.updateCameraBtnState && window.updateCameraBtnState();
-                if (response !== 'granted') {
-                    this._setLiveUI('センサー利用が拒否されました', '#e74c3c');
+            this.permissionPending = true;
+            window.updateCameraBtnState && window.updateCameraBtnState();
+
+            const requestPromise = DeviceOrientationEvent.requestPermission()
+                .then((response) => {
+                    if (response !== 'granted') {
+                        this._setLiveUI('センサー利用が拒否されました', '#e74c3c');
+                        return false;
+                    }
+                    // iOS: 許可取得後に deviceorientation を登録
+                    window.addEventListener('deviceorientation', (e) => this._handleOrientation(e), true);
+                    this.isListening = true;
+                    this._setLiveUI('センサー起動中...', '#e67e22');
+                    return true;
+                })
+                .catch(() => {
+                    this._setLiveUI('センサー取得エラー', '#e74c3c');
                     return false;
-                }
-                // iOS: 許可取得後に deviceorientation を登録
-                window.addEventListener('deviceorientation', (e) => this._handleOrientation(e), true);
-                this.isListening = true;
-                this._setLiveUI('センサー起動中...', '#e67e22');
-                return true;
-            } catch (e) {
-                this.permissionPending = false;
-                window.updateCameraBtnState && window.updateCameraBtnState();
-                this._setLiveUI('センサー取得エラー', '#e74c3c');
-                return false;
-            }
+                })
+                .finally(() => {
+                    this.permissionPending = false;
+                    window.updateCameraBtnState && window.updateCameraBtnState();
+                });
+
+            // 【重要】requestPermission()のPromiseがiOSの不具合等で永遠に解決しない場合に備え、
+            // 一定時間で強制的にpermissionPendingを解除し撮影ボタンを復帰させるウォッチドッグ。
+            // permissionPendingが立ったままだと撮影ボタンが永久に押せなくなるため。
+            // 実際の許可応答が後から届いた場合はfinally側で改めて解除されるが、二重解除でも支障はない。
+            const timeoutPromise = new Promise((resolve) => {
+                setTimeout(() => {
+                    if (this.permissionPending) {
+                        this.permissionPending = false;
+                        window.updateCameraBtnState && window.updateCameraBtnState();
+                        console.warn("方位センサー許可の応答待ちがタイムアウトしました。撮影ボタンを復帰します。");
+                    }
+                    resolve(false);
+                }, 12000);
+            });
+
+            return Promise.race([requestPromise, timeoutPromise]);
         }
 
         // Android: deviceorientationabsolute が使えるなら真北基準で登録
@@ -4134,10 +4175,28 @@ window.photoApp = {
     currentIndex: -1,
 
     // ---- カメラ撮影からのファイル受け取り（GPS自動記録） ----
+    // 撮影ボタン押下時のエントリポイント（onclickから直接input.click()を呼ばずここを経由する）。
+    // 【重要】disabled属性による無効化に加えてここでも再チェックする二重の安全策。
+    // iOS実機でごく稀に、位置情報／方位センサーの許可ダイアログ応答前にdisabledが
+    // 見た目上/内部的に解除しきれていない状態でタップが通ってしまうケースがあり、
+    // その場合でもここでブロックしてカメラ起動と許可ダイアログの競合（以後カメラが
+    // 起動しなくなる既知のiOS不具合）を防ぐ。
+    triggerCameraInput() {
+        const gpsPending     = !!(window.gpsManager && gpsManager.permissionPending);
+        const azimuthPending = !!(window.azimuthManager && azimuthManager.permissionPending);
+        if (gpsPending || azimuthPending) {
+            window.uiHelper && uiHelper.showToast("位置情報を確認中です。少し待ってから撮影してください");
+            return;
+        }
+        const input = document.getElementById('photo-camera-input');
+        if (input) input.click();
+    },
+
     async handleCameraFile(input) {
         const targetW = this._getResizeWidth();
         const force43 = this._getForce43();
         const gps = gpsManager.getCurrentForPhoto();
+        const saveToRoll = this._getSaveToCameraRoll();
         for (const file of Array.from(input.files)) {
             const d = await this.resizeImage(file, targetW, force43);
             this.photos.push({
@@ -4148,6 +4207,7 @@ window.photoApp = {
                 gpsAccuracy: gps ? gps.gpsAccuracy : null,
                 gpsFixed: false
             });
+            if (saveToRoll) this._saveToCameraRoll(file);
         }
         this.currentIndex = this.photos.length - 1;
         this.runSort();
@@ -4155,6 +4215,28 @@ window.photoApp = {
         await photoStorage.syncAll(this.photos);
         this.render(); this.updateHeaderSummary();
         input.value = "";
+    },
+
+    // カメラロール保存設定の状態を取得
+    _getSaveToCameraRoll() {
+        const cb = document.getElementById('photo-save-to-roll');
+        return cb ? cb.checked : true;
+    },
+
+    // ---- 撮影した元画像（リサイズ前）をカメラロールにも保存する ----
+    // 【重要】iOSのSafariでは、<input capture>で撮影した写真はWebページに渡されるだけで
+    // カメラロールへは自動保存されない仕様（プライバシー上、Webページが無断で写真アプリに
+    // 書き込むAPIは存在しない）。唯一の方法はWeb Share API（navigator.share）でOS標準の
+    // 共有シートを開き、ユーザー自身に「イメージを保存」をタップしてもらうこと。
+    // そのため完全な自動・無音保存は不可能で、撮影ごとに共有シートが開き一手間かかる点に注意。
+    // 共有をサポートしない環境（PC等）では何もしない（機能自体が使えないだけで、エラーにはしない）。
+    async _saveToCameraRoll(file) {
+        if (!navigator.share || !navigator.canShare || !navigator.canShare({ files: [file] })) return;
+        try {
+            await navigator.share({ files: [file] });
+        } catch (e) {
+            if (e.name !== 'AbortError') console.warn("カメラロールへの共有に失敗", e);
+        }
     },
 
     // ---- ファイル選択からのファイル受け取り（EXIFからGPS読み込み） ----
@@ -5017,6 +5099,8 @@ window.appControl = {
         if (resizeSel) d.photo_resize_width = resizeSel.value;
         const force43cb = document.getElementById('photo-force-43');
         if (force43cb) d.photo_force_43 = force43cb.checked;
+        const saveToRollCb = document.getElementById('photo-save-to-roll');
+        if (saveToRollCb) d.photo_save_to_roll = saveToRollCb.checked;
         try {
             localStorage.setItem(DEFAULTS_KEY, JSON.stringify(d));
             window.uiHelper && uiHelper.showToast("初期値を保存しました");
@@ -5122,6 +5206,10 @@ window.appControl = {
             if (d.photo_force_43 !== undefined) {
                 const el = document.getElementById('photo-force-43');
                 if (el) el.checked = d.photo_force_43;
+            }
+            if (d.photo_save_to_roll !== undefined) {
+                const el = document.getElementById('photo-save-to-roll');
+                if (el) el.checked = d.photo_save_to_roll;
             }
         } catch(e) { console.warn("loadDefaults failed:", e); }
     },
