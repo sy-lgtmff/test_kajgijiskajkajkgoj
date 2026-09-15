@@ -20,7 +20,7 @@
             window.top.location = window.self.location.href;
         }
     </script>
-    <title>現場踏査写真管理アプリ(現場調査用) (Phase 5.79)</title>
+    <title>現場踏査写真管理アプリ(現場調査用) (Phase 5.80)</title>
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
     <link rel="apple-touch-icon" href="icon-192.png">
@@ -465,8 +465,8 @@ canvas.sketch-canvas { display: block; width: 100%; }
             <section id="content-spec" class="tab-content">
                 <div class="spec-container">
     <header style="border-bottom: 2px solid #333; margin-bottom: 20px; padding-bottom: 10px;">
-        <h2>被災状況調査システム 開発仕様書 (Phase 5.79)</h2>
-        <p><strong>Last Updated:</strong> Phase 5.79 (カメラロール保存が機能しない不具合を修正。navigator.share()のユーザー操作起点がリサイズ処理のawaitで失効していたのが原因)
+        <h2>被災状況調査システム 開発仕様書 (Phase 5.80)</h2>
+        <p><strong>Last Updated:</strong> Phase 5.80 (カメラロール保存の原因切り分け用に、失敗パターンごとの診断トーストを追加)
         <p><strong>Status:</strong> App A (Stable)</p>
     </header>
 
@@ -594,7 +594,7 @@ canvas.sketch-canvas { display: block; width: 100%; }
         <h3>7. PWA更新管理</h3>
         <div style="padding: 15px; background: #e8f6f3; border: 1px solid #a2d9ce; border-radius: 4px; margin-top: 10px;">
             <p style="margin:0 0 10px 0; font-weight:bold; color: #16a085;">アプリ更新管理</p>
-            <p style="margin:0 0 5px 0; font-size:0.9rem;">現在のバージョン: <strong id="current-version-display">Phase 5.79</strong></p>
+            <p style="margin:0 0 5px 0; font-size:0.9rem;">現在のバージョン: <strong id="current-version-display">Phase 5.80</strong></p>
             <div style="display:flex; align-items:center; gap:10px;">
                 <button id="update-app-btn" type="button" class="btn-main" style="width:auto; padding:8px 16px;" onclick="appControl.checkForUpdate()">更新を確認する</button>
                 <span id="update-status" style="font-size:0.9rem; color:#555;"></span>
@@ -4242,17 +4242,29 @@ window.photoApp = {
     // そのため完全な自動・無音保存は不可能で、撮影ごとに共有シートが開き一手間かかる点に注意。
     // 共有をサポートしない環境（PC等）では何もしない（機能自体が使えないだけで、エラーにはしない）。
     async _saveToCameraRoll(file) {
-        if (!navigator.share || !navigator.canShare || !navigator.canShare({ files: [file] })) {
-            console.warn("カメラロール保存: このブラウザ環境ではファイル共有(navigator.share)に対応していません");
+        // 【デバッグ用】原因切り分けのため、失敗パターンごとに必ずトーストを出す。
+        // 「何も起きない」という報告があった場合、ここまで到達しているか自体が
+        // 不明だったため、無音で return していた分岐にも全てトーストを追加した。
+        if (!navigator.share) {
+            window.uiHelper && uiHelper.showToast("カメラロール保存: この端末は共有機能(Web Share API)に非対応です");
+            return;
+        }
+        if (!navigator.canShare) {
+            window.uiHelper && uiHelper.showToast("カメラロール保存: canShareに非対応の古いブラウザです");
+            return;
+        }
+        if (!navigator.canShare({ files: [file] })) {
+            window.uiHelper && uiHelper.showToast("カメラロール保存: この画像ファイルは共有できません(canShare=false)");
             return;
         }
         try {
             await navigator.share({ files: [file] });
+            window.uiHelper && uiHelper.showToast("共有シートを開きました");
         } catch (e) {
             // AbortError: ユーザーが共有シートをキャンセルした場合。想定内の操作なので何もしない。
             if (e.name === 'AbortError') return;
             console.warn("カメラロールへの共有に失敗", e);
-            window.uiHelper && uiHelper.showToast("カメラロールへの共有に失敗しました");
+            window.uiHelper && uiHelper.showToast(`カメラロール保存に失敗: ${e.name || e.message}`);
         }
     },
 
