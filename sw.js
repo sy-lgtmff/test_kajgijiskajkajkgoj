@@ -22,6 +22,13 @@ function isMapTile(url) {
     return url.includes('cyberjapandata.gsi.go.jp') || url.includes('server.arcgisonline.com');
 }
 
+// Googleタイル（個人カスタマイズ版でのみ使用）。Googleの利用規約上、タイルの
+// キャッシュ・保存は明確に禁止されているため、このSWでは一切キャッシュに書き込まず、
+// 常にネットワークへそのまま素通しする（オフライン機能の対象外）。
+function isGoogleTile(url) {
+    return url.includes('mt1.google.com/vt');
+}
+
 self.addEventListener('install', event => {
     event.waitUntil(
         caches.open(SHELL_CACHE)
@@ -46,6 +53,12 @@ self.addEventListener('activate', event => {
 self.addEventListener('fetch', event => {
     const req = event.request;
     if (req.method !== 'GET') return;
+
+    // Googleタイル: キャッシュ一切なしでネットワークへ素通し（保存禁止のため）
+    if (isGoogleTile(req.url)) {
+        event.respondWith(fetch(req));
+        return;
+    }
 
     // 地図タイル: Stale-While-Revalidate（キャッシュを即返しつつ裏で更新）
     if (isMapTile(req.url)) {

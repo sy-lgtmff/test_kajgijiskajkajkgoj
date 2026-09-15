@@ -20,7 +20,7 @@
             window.top.location = window.self.location.href;
         }
     </script>
-    <title>現場踏査写真管理アプリ(現場調査用) (Phase 5.83)</title>
+    <title>現場踏査写真管理アプリ(現場調査用) (Phase 5.84)</title>
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
     <link rel="apple-touch-icon" href="icon-192.png">
@@ -478,8 +478,8 @@ canvas.sketch-canvas { display: block; width: 100%; }
                 <div id="help-spec" class="help-tab-content">
                 <div class="spec-container">
     <header style="border-bottom: 2px solid #333; margin-bottom: 20px; padding-bottom: 10px;">
-        <h2>被災状況調査システム 開発仕様書 (Phase 5.83)</h2>
-        <p><strong>Last Updated:</strong> Phase 5.83 (ヘッダータブを整理。「アプリ」→「ホーム」に改名し、「アプリ化の手順」「開発方針」は「ヘルプ」タブ内のサブタブに統合。旧「開発方針」末尾のアプリ更新管理は独立した「更新」タブへ移動)
+        <h2>被災状況調査システム 開発仕様書 (Phase 5.84)</h2>
+        <p><strong>Last Updated:</strong> Phase 5.84 (ベースマップにGoogleタイルを追加（個人カスタマイズ版限定）。「開発方針」タブに「8. 更新履歴」セクションを追加)
         <p><strong>Status:</strong> App A (Stable)</p>
     </header>
 
@@ -610,6 +610,23 @@ canvas.sketch-canvas { display: block; width: 100%; }
         <h3>7. アプリ更新管理について</h3>
         <p>アプリのバージョン確認・更新は「更新」タブ（ヘッダーの3つ目のタブ）に移動した（Phase 5.83）。以前はこの「開発方針」タブの末尾にあったが、独立したタブに切り出し、更新確認だけを目的に開けるようにした。</p>
     </section>
+
+    <section>
+        <h3>8. 更新履歴</h3>
+        <table style="width:100%; border-collapse: collapse; font-size: 0.85rem;" border="1">
+            <tr style="background:#eee;"><th style="white-space:nowrap;">Phase</th><th>内容</th></tr>
+            <tr><td>5.84</td><td>ベースマップにGoogleタイル（マップ／航空写真／ハイブリッド）を追加。個人カスタマイズ版限定・非公式URLのため、Service Workerのキャッシュ対象からは除外（オフライン保存はしない）。「開発方針」タブに本「更新履歴」セクションを追加。</td></tr>
+            <tr><td>5.83</td><td>ヘッダータブを整理。「アプリ」タブを「ホーム」に改名し、「アプリ化の手順」「開発方針」を「ヘルプ」タブ内のサブタブに統合。旧「開発方針」末尾のアプリ更新管理を独立した「更新」タブへ移動。</td></tr>
+            <tr><td>5.82</td><td>写真キャッシュ（IndexedDB）の信頼性を強化。syncAll()をclear+putの単一トランザクションに変更し、中断時のデータ消失リスクを解消。撮影のたびに二重実行されていたDB同期を1回に削減。「新規調査開始」でIndexedDBの写真キャッシュが削除されない不具合を修正。</td></tr>
+            <tr><td>5.81</td><td>カメラロール自動保存が実機（iOS）で必ず失敗する場合があると判明。写真ツールバーに「📥 保存」ボタンを新設し、ユーザーの直接タップから確実にカメラロールへ保存できるようにした。</td></tr>
+            <tr><td>5.80</td><td>カメラロール保存の原因切り分け用に、失敗パターンごとの診断トーストを追加。</td></tr>
+            <tr><td>5.79</td><td>カメラロール保存が機能しない不具合を修正。navigator.share()に必要なユーザー操作起点が、画像リサイズ処理のawaitを待つ間に失効していたのが原因。</td></tr>
+            <tr><td>5.78</td><td>ヘッダー内のロゴ画像を削除。</td></tr>
+            <tr><td>5.77</td><td>GPS/方位センサーの許可待ちで撮影ボタンが恒久的に押せなくなる不具合の対策を強化（許可待ちウォッチドッグ・二重チェック）。撮影時にカメラロールへ保存する設定を追加。</td></tr>
+            <tr><td>5.76</td><td>Google Apps Script配信時のiframeサンドボックス脱出処理を追加。</td></tr>
+            <tr><td>5.75</td><td>写真の位置図表示を追加。位置情報を持つ写真をカメラアイコンのマーカーとして地図に表示し、撮影方向（azimuth）を矢印で重ねて表示する。</td></tr>
+        </table>
+    </section>
 </div>
                 </div>
             </section>
@@ -618,7 +635,7 @@ canvas.sketch-canvas { display: block; width: 100%; }
                 <div style="padding: 20px;">
                     <div style="padding: 15px; background: #e8f6f3; border: 1px solid #a2d9ce; border-radius: 4px;">
                         <p style="margin:0 0 10px 0; font-weight:bold; color: #16a085;">アプリ更新管理</p>
-                        <p style="margin:0 0 5px 0; font-size:0.9rem;">現在のバージョン: <strong id="current-version-display">Phase 5.83</strong></p>
+                        <p style="margin:0 0 5px 0; font-size:0.9rem;">現在のバージョン: <strong id="current-version-display">Phase 5.84</strong></p>
                         <div style="display:flex; align-items:center; gap:10px;">
                             <button id="update-app-btn" type="button" class="btn-main" style="width:auto; padding:8px 16px;" onclick="appControl.checkForUpdate()">更新を確認する</button>
                             <span id="update-status" style="font-size:0.9rem; color:#555;"></span>
@@ -3215,7 +3232,17 @@ window.mapApp = {
         const layers = {
             "地理院 標準": L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/std/{z}/{x}/{y}.png', { attribution: "GSI", crossOrigin: 'anonymous', maxZoom: 25, maxNativeZoom: 18 }),
             "地理院 写真": L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/seamlessphoto/{z}/{x}/{y}.jpg', { attribution: "GSI", crossOrigin: 'anonymous', maxZoom: 25, maxNativeZoom: 18 }),
-            "ESRI 衛星": L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { attribution: "Esri", crossOrigin: 'anonymous', maxZoom: 25, maxNativeZoom: 19 })
+            "ESRI 衛星": L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { attribution: "Esri", crossOrigin: 'anonymous', maxZoom: 25, maxNativeZoom: 19 }),
+            // 【個人利用限定・Phase 5.84追加】QGISのXYZ接続と同じ非公式タイルURL。Google Maps
+            // JavaScript APIを経由しない直接アクセスのため利用規約上グレーであり、予告なく
+            // ブロックされる可能性がある。個人カスタマイズ版としての利用前提で追加。
+            // crossOriginは付けない（Googleのタイルサーバーは通常CORSヘッダーを返さないため、
+            // 付けるとタイル自体が読み込めなくなる）。そのためこのレイヤー表示中はキャンバスが
+            // CORS未対応画像で汚染され、地図を写真に保存する機能等のcanvas書き出し系が失敗する
+            // 可能性がある点に注意。
+            "Google マップ": L.tileLayer('https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', { attribution: "Google", maxZoom: 25, maxNativeZoom: 20 }),
+            "Google 航空写真": L.tileLayer('https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', { attribution: "Google", maxZoom: 25, maxNativeZoom: 20 }),
+            "Google ハイブリッド": L.tileLayer('https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', { attribution: "Google", maxZoom: 25, maxNativeZoom: 20 })
         };
         layers["地理院 標準"].addTo(this.map);
         L.control.layers(layers).addTo(this.map);
