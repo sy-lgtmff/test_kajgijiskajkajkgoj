@@ -20,7 +20,7 @@
             window.top.location = window.self.location.href;
         }
     </script>
-    <title>現場踏査写真管理アプリ(現場調査用) (Phase 5.81)</title>
+    <title>現場踏査写真管理アプリ(現場調査用) (Phase 5.82)</title>
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
     <link rel="apple-touch-icon" href="icon-192.png">
@@ -466,8 +466,8 @@ canvas.sketch-canvas { display: block; width: 100%; }
             <section id="content-spec" class="tab-content">
                 <div class="spec-container">
     <header style="border-bottom: 2px solid #333; margin-bottom: 20px; padding-bottom: 10px;">
-        <h2>被災状況調査システム 開発仕様書 (Phase 5.81)</h2>
-        <p><strong>Last Updated:</strong> Phase 5.81 (撮影直後の自動カメラロール保存はiOS実機で活性化不足のため必ず失敗する端末があると判明。写真ツールバーに手動保存ボタンを追加)
+        <h2>被災状況調査システム 開発仕様書 (Phase 5.82)</h2>
+        <p><strong>Last Updated:</strong> Phase 5.82 (写真キャッシュ(IndexedDB)の信頼性を強化。syncAllを単一トランザクションで原子化し中断時のデータ消失リスクを解消。撮影のたびに二重実行されていたDB同期を1回に削減。「新規調査開始」でIndexedDBの写真キャッシュが削除されない不具合を修正)
         <p><strong>Status:</strong> App A (Stable)</p>
     </header>
 
@@ -558,6 +558,8 @@ canvas.sketch-canvas { display: block; width: 100%; }
             <li>保存先：LocalStorage（キー: survey_app_autosave）</li>
             <li>写真はdataUrlを保存しない。メタ情報（tag・memo・azimuth・lat・lng・gpsAccuracy・gpsFixed）のみ保存。</li>
             <li>復元時はメタ情報のみ復元。実画像はJZIP読み込みで復元する運用。</li>
+            <li><strong>写真キャッシュ(IndexedDB/photoStorage)の信頼性強化（Phase 5.82）:</strong> 実画像本体はIndexedDB（photoStorage、id=配列インデックスで管理）にキャッシュしている。以前のsyncAll()は「clearAll()で全消去→1件ずつsave()で書き直し」という別々のトランザクションで実装しており、この間にアプリが強制終了・OSによるバックグラウンド一時停止・電源断等で中断されると、消去後・書き直し未完了のまま写真データが失われるリスクがあった。修正として、clear()と全put()を同一のIndexedDBトランザクションにまとめ、オールオアナッシング（中断時は自動ロールバックされ、消去前の状態がそのまま保持される）にした。また、撮影の度にrunSort()内部と呼び出し元(handleCameraFile/handleFileSelect)の両方でsyncAll()が二重に走っていたのも、runSort()側に一本化して削減した（runSortをasync化し、呼び出し元はawaitするだけに変更）。</li>
+            <li><strong>「新規調査開始」でIndexedDBが消されない不具合修正（Phase 5.82）:</strong> ツールバーの「新規調査開始」（uiHelper.confirmReset→appControl.executeClear）は画面上の写真一覧（photoApp.photos）を空にするだけで、IndexedDB側の写真データは削除されておらず、前回調査の写真キャッシュが消えずに残り続けていた。appControl.clearAll()側は元々photoStorage.clearAll()を呼んでいたが、こちらのexecuteClear()には無かったための漏れ。executeClear()にもphotoStorage.clearAll()の呼び出しを追加した。</li>
         </ul>
 
         <h4>4.6 PWA・デプロイ</h4>
@@ -596,7 +598,7 @@ canvas.sketch-canvas { display: block; width: 100%; }
         <h3>7. PWA更新管理</h3>
         <div style="padding: 15px; background: #e8f6f3; border: 1px solid #a2d9ce; border-radius: 4px; margin-top: 10px;">
             <p style="margin:0 0 10px 0; font-weight:bold; color: #16a085;">アプリ更新管理</p>
-            <p style="margin:0 0 5px 0; font-size:0.9rem;">現在のバージョン: <strong id="current-version-display">Phase 5.81</strong></p>
+            <p style="margin:0 0 5px 0; font-size:0.9rem;">現在のバージョン: <strong id="current-version-display">Phase 5.82</strong></p>
             <div style="display:flex; align-items:center; gap:10px;">
                 <button id="update-app-btn" type="button" class="btn-main" style="width:auto; padding:8px 16px;" onclick="appControl.checkForUpdate()">更新を確認する</button>
                 <span id="update-status" style="font-size:0.9rem; color:#555;"></span>
@@ -3896,13 +3898,26 @@ window.photoStorage = {
         } catch(e) { console.warn("photoStorage.clearAll failed:", e); }
     },
 
-    // photos[]全体をDBに同期する（並び替え後など）
+    // photos[]全体をDBに同期する（並び替え後など）。
+    // 【重要】以前はclearAll()→1件ずつsave()という別々のトランザクションで実装しており、
+    // 「全消去→書き直し」の途中でアプリが強制終了・バックグラウンドで一時停止・電源断等に
+    // より中断されると、消去されたまま書き直しが完了していない写真データが失われる
+    // リスクがあった。IndexedDBの読み書きトランザクションは単一トランザクション内であれば
+    // 途中で中断されても全体がロールバックされ、コミット前の状態（＝古いデータ）がそのまま
+    // 保持される性質を持つため、clear()と全put()を同一トランザクションにまとめることで
+    // 「クリア後・書き直し前」の中間状態が永続化されることは無くなる（オールオアナッシング）。
     async syncAll(photos) {
         try {
-            await this.clearAll();
-            for (let i = 0; i < photos.length; i++) {
-                await this.save(i, photos[i].dataUrl);
-            }
+            const db = await this.open();
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction(this.STORE, 'readwrite');
+                const store = tx.objectStore(this.STORE);
+                store.clear();
+                photos.forEach((p, i) => store.put({ id: i, dataUrl: p.dataUrl }));
+                tx.oncomplete = resolve;
+                tx.onerror    = () => reject(tx.error);
+                tx.onabort    = () => reject(tx.error);
+            });
         } catch(e) { console.warn("photoStorage.syncAll failed:", e); }
     },
 
@@ -4223,10 +4238,8 @@ window.photoApp = {
             });
         }
         this.currentIndex = this.photos.length - 1;
-        this.runSort();
-        // IndexedDBに全写真を同期（runSortで順番が変わるため全件同期）
-        await photoStorage.syncAll(this.photos);
-        this.render(); this.updateHeaderSummary();
+        await this.runSort();
+        this.updateHeaderSummary();
         input.value = "";
     },
 
@@ -4301,10 +4314,8 @@ window.photoApp = {
             });
         }
         this.currentIndex = this.photos.length - 1;
-        this.runSort();
-        // IndexedDBに全写真を同期
-        await photoStorage.syncAll(this.photos);
-        this.render(); this.updateHeaderSummary();
+        await this.runSort();
+        this.updateHeaderSummary();
         input.value = "";
     },
 
@@ -4509,7 +4520,11 @@ window.photoApp = {
     },
 
     // ---- タグ順ソート ----
-    runSort() {
+    // 【重要】以前はここでsyncAll()を呼んだ後、呼び出し元(handleCameraFile等)でも
+    // 重ねてsyncAll()を呼んでおり、同じ「全消去→全件書き直し」処理が撮影のたびに
+    // 二重に走っていた（無駄な書き込みが増えるほど中断時のリスクも上がる）。
+    // runSort自体がDB同期の責務を持つよう統一し、呼び出し元は awaitするだけにした。
+    async runSort() {
         const currentPhoto = this.photos[this.currentIndex];
         this.photos.sort((a, b) => {
             const s = { "全景": 1, "近景": 2, "補足": 3, "地図メモ": 4 };
@@ -4517,7 +4532,7 @@ window.photoApp = {
         });
         if (currentPhoto) this.currentIndex = this.photos.indexOf(currentPhoto);
         // ソートで順番が変わるのでDBを全件同期
-        photoStorage.syncAll(this.photos);
+        await photoStorage.syncAll(this.photos);
         this.render();
     },
 
@@ -5082,6 +5097,9 @@ window.appControl = {
         }
         mapApp.init(); mapApp.allDrawnItems.clearLayers(); mapApp.updateMapSummary();
         photoApp.photos = []; photoApp.currentIndex = -1; photoApp.render(); photoApp.updateHeaderSummary();
+        // 【修正】画面上の写真一覧は空にしていたが、IndexedDB(photoStorage)側の
+        // 写真データを削除していなかったため、前回調査の写真が消えずに残り続けていた。
+        window.photoStorage && photoStorage.clearAll();
         const d = document.getElementById('default-date'); if (d) d.value = new Date().toISOString().split('T')[0];
         document.querySelectorAll('.accordion-header').forEach(header => {
             const s = header.querySelector('.summary-text');
