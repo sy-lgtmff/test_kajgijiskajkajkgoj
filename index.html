@@ -20,7 +20,7 @@
             window.top.location = window.self.location.href;
         }
     </script>
-    <title>現場踏査写真管理アプリ(現場調査用) (Phase 5.92)</title>
+    <title>現場踏査写真管理アプリ(現場調査用) (Phase 5.94)</title>
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
     <link rel="apple-touch-icon" href="icon-192.png">
@@ -199,6 +199,24 @@ body { margin: 0; padding: 0; background-color: #666; font-family: sans-serif; d
 .color-btn.active { transform: scale(1.2); border-color: #333; box-shadow: 0 0 5px rgba(0,0,0,0.5); }
 .sketch-canvas-container { position: relative; box-shadow: 0 2px 5px rgba(0,0,0,0.1); background: white; cursor: crosshair; touch-action: none; margin-bottom: 5px; }
 canvas.sketch-canvas { display: block; width: 100%; }
+
+/* 白紙メモの「写真に保存」「全消去」フローティングボタン。右下に縦並び
+   （保存が上、消去が下）。地図の「現在地」ボタンと同じ大きさに揃える。
+   【重要】CSSの"pointer:coarse"メディアクエリはLeaflet独自のL.Browser.touch判定
+   （地図側の.leaflet-touch付与に使われる）と一致しないことがあるため使わず、
+   同じ判定基準で確実にサイズを揃えるためbody.app-touchクラス（JS側でL.Browser.touch
+   を見て付与）で切り替える。 */
+.sketch-icon-btn {
+    position: absolute; right: 10px; background: #fff; color: #333; width: 36px; height: 36px;
+    display: flex; align-items: center; justify-content: center; border: none;
+    border-radius: 4px; box-shadow: 0 1px 5px rgba(0,0,0,0.4); cursor: pointer; padding: 0; z-index: 10;
+}
+.sketch-icon-btn svg { width: 20px; height: 20px; }
+.sketch-icon-btn-save { bottom: 56px; }
+.sketch-icon-btn-trash { bottom: 10px; color: #e74c3c; }
+body.app-touch .sketch-icon-btn { width: 44px; height: 44px; }
+body.app-touch .sketch-icon-btn svg { width: 24px; height: 24px; }
+body.app-touch .sketch-icon-btn-save { bottom: 64px; }
     </style>
 </head>
 <body>
@@ -292,10 +310,12 @@ canvas.sketch-canvas { display: block; width: 100%; }
                 </div>
                 <div class="sketch-canvas-container">
                     <canvas id="sketch-canvas" class="sketch-canvas"></canvas>
-                </div>
-                <div class="sketch-actions" style="display:flex; gap:5px; padding:5px;">
-                    <button class="btn-sub" style="flex:1; background:#c0392b;" onclick="sketchApp.clearAll()">全消去</button>
-                    <button class="btn-main" style="flex:1;" onclick="sketchApp.saveToPhoto()">写真に保存</button>
+                    <button type="button" class="sketch-icon-btn sketch-icon-btn-save" title="写真に保存" onclick="sketchApp.saveToPhoto()">
+                        <svg viewBox="15 5 320 280" xmlns="http://www.w3.org/2000/svg"><path d="M175,20L175,174.08" style="fill:none;stroke:currentColor;stroke-width:30px;stroke-linecap:round;"/><path d="M105,120L175,190L245,120" style="fill:none;stroke:currentColor;stroke-width:30px;stroke-linecap:round;stroke-linejoin:round;"/><path d="M30,210L30,270L320,270L320,210" style="fill:none;stroke:currentColor;stroke-width:30px;stroke-linecap:round;stroke-linejoin:round;"/></svg>
+                    </button>
+                    <button type="button" class="sketch-icon-btn sketch-icon-btn-trash" title="全消去" onclick="sketchApp.clearAll()">
+                        <svg viewBox="0 0 1673 2134" xmlns="http://www.w3.org/2000/svg"><g transform="matrix(1,0,0,1,-230.55,0)"><g transform="matrix(4.166667,0,0,4.166667,0,0)"><path d="M439.114,69.747C439.114,69.747 442.091,71.847 395.775,57.781C354.255,45.177 314.98,42.472 314.98,42.472L312.258,23.175C310.387,9.857 299.484,0 286.642,0L225.34,0C212.515,0 201.611,9.857 199.724,23.175L197.002,42.472C197.002,42.472 157.744,45.177 116.224,57.781C69.891,71.848 72.868,69.747 72.868,69.747C62.544,72.596 55.332,82.402 55.332,93.611L55.332,110.306L456.669,110.306L456.669,93.611C456.669,82.402 449.456,72.596 439.114,69.747Z" style="fill:currentColor;"/></g><g transform="matrix(4.166667,0,0,4.166667,0,0)"><path d="M88.593,464.731C90.957,491.486 113.367,512 140.234,512L371.758,512C398.615,512 421.034,491.486 423.398,464.731L449.04,137.521L62.952,137.521L88.593,464.731ZM342.016,209.904C342.526,201.502 349.747,195.097 358.15,195.608C366.552,196.118 372.948,203.339 372.446,211.742L357.954,451.235C357.444,459.637 350.223,466.033 341.821,465.523C333.418,465.013 327.015,457.801 327.525,449.398L342.016,209.904ZM240.751,210.823C240.751,202.403 247.572,195.582 255.991,195.582C264.411,195.582 271.231,202.403 271.231,210.823L271.231,450.315C271.231,458.735 264.41,465.555 255.991,465.555C247.571,465.555 240.751,458.734 240.751,450.315L240.751,210.823ZM153.833,195.608C162.236,195.098 169.457,201.502 169.967,209.904L184.476,449.396C184.986,457.799 178.582,465.011 170.18,465.521C161.777,466.031 154.556,459.635 154.046,451.233L139.537,211.74C139.026,203.339 145.43,196.118 153.833,195.608Z" style="fill:currentColor;"/></g></g></svg>
+                    </button>
                 </div>
             </div>
         </div>
@@ -526,8 +546,8 @@ canvas.sketch-canvas { display: block; width: 100%; }
                 <div id="help-spec" class="help-tab-content">
                 <div class="spec-container">
     <header class="spec-header">
-        <h2>被災状況調査システム 開発仕様書 (Phase 5.92)</h2>
-        <p><strong>Last Updated:</strong> Phase 5.92 (「全て消去」ボタンを削除。「地図を写真に保存」を「現在地」と同じ大きさのアイコンボタンにして右下に縦並び配置（現在地が上、保存が下）)</p>
+        <h2>被災状況調査システム 開発仕様書 (Phase 5.94)</h2>
+        <p><strong>Last Updated:</strong> Phase 5.94 (「写真に保存」アイコンの上下バランスが崩れていた不具合を修正。SVGのviewBoxをアイコンの実座標に合わせて計算し直した)</p>
         <span class="spec-status-badge">App A (Stable)</span>
     </header>
 
@@ -669,6 +689,8 @@ canvas.sketch-canvas { display: block; width: 100%; }
         <div class="spec-table-wrap">
         <table>
             <tr><th>Phase</th><th>内容</th></tr>
+            <tr><td>5.94</td><td>「地図を写真に保存」「写真に保存」（ダウンロードアイコン）が上寄りに表示される不具合を修正。元のSVGは`transform="matrix(1,0,0,1,-15,-41.85)"`でviewBox"0 0 320 327"に合わせていたが、Y方向の平行移動量が実際のパス座標（y:20〜270）とviewBoxの高さ（327）の中心に合っておらず、内容が上寄り・下に大きな余白ができていた。transformを使わず、パスの実座標に直接フィットするviewBox"15 5 320 280"に変更し、上下左右とも均等な余白になるようにした。</td></tr>
+            <tr><td>5.93</td><td>白紙メモの「写真に保存」「全消去」ボタンも、地図下の固定行（.sketch-actions）からcanvasに重ねるフローティングアイコンボタン（.sketch-icon-btn）に変更。ユーザー提供のダウンロード/ゴミ箱SVGアイコンを使用し、地図の「現在地」ボタンと同じ大きさで右下に縦並び配置（保存が上、消去が下）。サイズの一致には当初pointer:coarseメディアクエリを使ったが、Leaflet自身のL.Browser.touch判定と食い違うことがあったため、body.app-touchクラス（DOMContentLoadedでL.Browser.touchを見て付与）に切り替えて確実に一致させた。</td></tr>
             <tr><td>5.92</td><td>「全て消去」ボタン（mapApp.clearLayers）を削除。「地図を写真に保存」ボタンをユーザー提供のダウンロードSVGアイコンを使ったアイコンボタン（SaveMapControl）にし、「現在地」（LocateControl）と同じ大きさ・スタイル（.map-icon-btn、旧.locate-control-btnから改名）で右下に縦並び配置した。Leafletのbottomright位置は後から追加したコントロールほど地図中心側（上）に積み上がる仕様のため、「現在地」を上にするにはSaveMapControlを先にLocateControlを後にaddTo()する必要があった。</td></tr>
             <tr><td>5.91</td><td>「地図を写真に保存」「全て消去」ボタンを、地図の下に専有スペースを取る固定行（.map-controls）から、地図に重ねて表示するフローティングボタン（.map-floating-actions）に変更。右下の「現在地」ボタン・左下の「注釈」チェックボックスと重ならない高さ（bottom:85px）に配置。ボタン行が専有スペースを取らなくなった分、mapApp.fitMapHeight()の計算からも差し引き分を削除し、地図表示領域がさらに広がった。</td></tr>
             <tr><td>5.90</td><td>「現在地」ボタンを.map-controlsの通常ボタンからフローティングのアイコンボタン（LocateControl、右下）に変更。ベースマップ選択（レイヤーコントロールのトグルアイコン）と同じ大きさ（通常36px/タッチ端末44px）に揃え、ユーザー提供のSVGアイコンを埋め込んだ。あわせて「テキスト表示」チェックボックス（TextToggleControl）を右下から左下へ移動し、表記を「注釈」に変更した。</td></tr>
@@ -698,7 +720,7 @@ canvas.sketch-canvas { display: block; width: 100%; }
                 <div style="padding: 20px;">
                     <div style="padding: 15px; background: #e8f6f3; border: 1px solid #a2d9ce; border-radius: 4px;">
                         <p style="margin:0 0 10px 0; font-weight:bold; color: #16a085;">アプリ更新管理</p>
-                        <p style="margin:0 0 5px 0; font-size:0.9rem;">現在のバージョン: <strong id="current-version-display">Phase 5.92</strong></p>
+                        <p style="margin:0 0 5px 0; font-size:0.9rem;">現在のバージョン: <strong id="current-version-display">Phase 5.94</strong></p>
                         <div style="display:flex; align-items:center; gap:10px;">
                             <button id="update-app-btn" type="button" class="btn-main" style="width:auto; padding:8px 16px;" onclick="appControl.checkForUpdate()">更新を確認する</button>
                             <span id="update-status" style="font-size:0.9rem; color:#555;"></span>
@@ -3516,7 +3538,7 @@ window.mapApp = {
                     const btn = L.DomUtil.create('a', 'map-icon-btn', div);
                     btn.href = '#';
                     btn.title = '地図を写真に保存';
-                    btn.innerHTML = `<svg viewBox="0 0 320 327" xmlns="http://www.w3.org/2000/svg"><g transform="matrix(1,0,0,1,-15,-41.85)"><path d="M175,20L175,174.08" style="fill:none;stroke:currentColor;stroke-width:30px;stroke-linecap:round;"/></g><g transform="matrix(1,0,0,1,-15,-41.85)"><path d="M105,120L175,190L245,120" style="fill:none;stroke:currentColor;stroke-width:30px;stroke-linecap:round;stroke-linejoin:round;"/></g><g transform="matrix(1,0,0,1,-15,-41.85)"><path d="M30,210L30,270L320,270L320,210" style="fill:none;stroke:currentColor;stroke-width:30px;stroke-linecap:round;stroke-linejoin:round;"/></g></svg>`;
+                    btn.innerHTML = `<svg viewBox="15 5 320 280" xmlns="http://www.w3.org/2000/svg"><path d="M175,20L175,174.08" style="fill:none;stroke:currentColor;stroke-width:30px;stroke-linecap:round;"/><path d="M105,120L175,190L245,120" style="fill:none;stroke:currentColor;stroke-width:30px;stroke-linecap:round;stroke-linejoin:round;"/><path d="M30,210L30,270L320,270L320,210" style="fill:none;stroke:currentColor;stroke-width:30px;stroke-linecap:round;stroke-linejoin:round;"/></svg>`;
                     L.DomEvent.disableClickPropagation(div);
                     L.DomEvent.on(btn, 'click', (e) => { L.DomEvent.preventDefault(e); mapApp.captureToPhoto(); });
                     return div;
@@ -3909,9 +3931,10 @@ window.sketchApp = {
     },
     // 【重要】以前はcanvas高さをwindow.innerHeight*0.55の固定値にしていたが、
     // 地図（#map、Phase 5.88で修正済み）と同じ理由で、ビューポートの縦横比に
-    // よっては下の操作ボタン（全消去/写真に保存）の下に大きな空白ができていた。
-    // #main-content（残り表示領域）の下端までを実測し、操作ボタン行の高さを
-    // 差し引いた分をcanvasの高さに割り当てることで空白をなくす。
+    // よっては下に大きな空白ができていた。#main-content（残り表示領域）の
+    // 下端までを実測し、その分をcanvasの高さに割り当てることで空白をなくす。
+    // 「写真に保存」「全消去」はPhase 5.93でcanvasに重ねるフローティングボタンに
+    // 変更したため、専有スペースを引く必要は無くなった。
     resizeAndClear() {
         if(!this.canvas) return;
         const container = this.canvas.parentElement;
@@ -3920,11 +3943,9 @@ window.sketchApp = {
         const w = container.clientWidth;
         let h = Math.round(window.innerHeight * 0.55);
         if (container.offsetParent !== null) {
-            const actionsEl = document.querySelector('#sketch-container .sketch-actions');
-            const actionsHeight = actionsEl ? actionsEl.getBoundingClientRect().height : 0;
             const mainBottom = mainContent.getBoundingClientRect().bottom;
             const containerTop = container.getBoundingClientRect().top;
-            const available = Math.round(mainBottom - containerTop - actionsHeight);
+            const available = Math.round(mainBottom - containerTop);
             if (available > 150) h = available;
         }
         if (this.canvas.width !== w || this.canvas.height !== h) {
@@ -5522,6 +5543,12 @@ document.addEventListener('DOMContentLoaded', () => {
     };
     updateSectionTabsTop();
     window.addEventListener('resize', updateSectionTabsTop);
+
+    // 白紙メモのフローティングアイコンボタンを、地図のLeafletコントロール
+    // （現在地・保存ボタン）と同じ基準でタッチ端末サイズに切り替えるための印。
+    // Leaflet自身がL.Browser.touchの値に応じて.leaflet-touchを地図に付与するのと
+    // 同じ判定基準を使うことで、body.app-touch側のサイズも確実に一致させる。
+    if (window.L && L.Browser && L.Browser.touch) document.body.classList.add('app-touch');
 
     // 画面回転・ウィンドウリサイズのたびに地図の高さを残り領域いっぱいに再計算する。
     // fitMapHeight()自体が「位置図タブが非表示なら何もしない」を内部で判定する。
