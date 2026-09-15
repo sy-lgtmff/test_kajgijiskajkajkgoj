@@ -20,7 +20,7 @@
             window.top.location = window.self.location.href;
         }
     </script>
-    <title>現場踏査写真管理アプリ(現場調査用) (Phase 5.88)</title>
+    <title>現場踏査写真管理アプリ(現場調査用) (Phase 5.92)</title>
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
     <link rel="apple-touch-icon" href="icon-192.png">
@@ -59,6 +59,22 @@ body { margin: 0; padding: 0; background-color: #666; font-family: sans-serif; d
 .map-text-toggle-panel label { display: flex; align-items: center; gap: 4px; cursor: pointer; white-space: nowrap; }
 .map-text-toggle-panel input { width: 14px; height: 14px; }
 
+/* 地図右下のフローティングアイコンボタン共通スタイル（「現在地」「地図を写真に保存」）。
+   ベースマップ選択（レイヤーコントロールのトグルアイコン）と同じ大きさに揃える
+   （Leaflet既定: 通常36px、タッチ端末44px）。
+   【重要】Leaflet純正CSSの".leaflet-bar a"（26px/タッチ30px）と詳細度が同じだと
+   読み込み順で負けることがあるため、".leaflet-bar a.map-icon-btn"のように
+   要素+クラスの組み合わせで詳細度を上げ、確実に上書きされるようにしている。 */
+.leaflet-bar a.map-icon-btn {
+    background: #fff; color: #333; width: 36px; height: 36px;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 4px; cursor: pointer; text-decoration: none;
+}
+.leaflet-bar a.map-icon-btn:hover { background: #f4f4f4; }
+.map-icon-btn svg { width: 20px; height: 20px; }
+.leaflet-touch .leaflet-bar a.map-icon-btn { width: 44px; height: 44px; }
+.leaflet-touch .map-icon-btn svg { width: 24px; height: 24px; }
+
 /* Leaflet Drawのツールチップ非表示 */
 .leaflet-draw-tooltip { display: none !important; }
 
@@ -75,6 +91,8 @@ body { margin: 0; padding: 0; background-color: #666; font-family: sans-serif; d
 
 /* 地図のタッチアクション制御 */
 #map { touch-action: none; }
+
+#map-container { position: relative; }
 
 /* ヘッダー */
 .app-header { background-color: var(--primary-color); color: white; padding: 10px; position: sticky; top: 0; z-index: 1000; }
@@ -158,9 +176,6 @@ body { margin: 0; padding: 0; background-color: #666; font-family: sans-serif; d
 .input-group input, .input-group select, .input-group textarea { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 1rem; box-sizing: border-box; }
 .btn-main { width: 100%; padding: 12px; background: #27ae60; color: white; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; }
 .btn-sub { width: 100%; padding: 10px; background: #95a5a6; color: white; border: none; border-radius: 4px; cursor: pointer; }
-.map-controls { display: flex; gap: 5px; padding: 8px; background: #eee; }
-.map-controls button { flex: 1; padding: 8px; font-size: 0.8rem; border: 1px solid #ccc; border-radius: 3px; background: #fff; }
-.map-controls .btn-main { background: #27ae60; color: white; border: none; font-weight: bold; }
 
 /* モーダル */
 .custom-modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 2000; align-items: center; justify-content: center; }
@@ -256,11 +271,6 @@ canvas.sketch-canvas { display: block; width: 100%; }
             <!-- 地図エリア -->
             <div id="map-container">
                 <div id="map" style="height: 55vh; width: 100%;"></div>
-                <div class="map-controls">
-                    <button type="button" onclick="mapApp.setCurrentLocation()">現在地</button>
-                    <button type="button" style="background:#e67e22; color:white;" onclick="mapApp.captureToPhoto()">地図を写真に保存</button>
-                    <button type="button" onclick="mapApp.clearLayers()">全て消去</button>
-                </div>
             </div>
             <!-- 白紙メモエリア -->
             <div id="sketch-container" style="display:none;">
@@ -283,7 +293,7 @@ canvas.sketch-canvas { display: block; width: 100%; }
                 <div class="sketch-canvas-container">
                     <canvas id="sketch-canvas" class="sketch-canvas"></canvas>
                 </div>
-                <div style="display:flex; gap:5px; padding:5px;">
+                <div class="sketch-actions" style="display:flex; gap:5px; padding:5px;">
                     <button class="btn-sub" style="flex:1; background:#c0392b;" onclick="sketchApp.clearAll()">全消去</button>
                     <button class="btn-main" style="flex:1;" onclick="sketchApp.saveToPhoto()">写真に保存</button>
                 </div>
@@ -516,8 +526,8 @@ canvas.sketch-canvas { display: block; width: 100%; }
                 <div id="help-spec" class="help-tab-content">
                 <div class="spec-container">
     <header class="spec-header">
-        <h2>被災状況調査システム 開発仕様書 (Phase 5.88)</h2>
-        <p><strong>Last Updated:</strong> Phase 5.88 (地図が固定height:55vhだったため、縦長ビューポートで操作ボタン下に大きな空白ができていた不具合を修正。地図の高さを残り領域いっぱいに動的計算するようにした)</p>
+        <h2>被災状況調査システム 開発仕様書 (Phase 5.92)</h2>
+        <p><strong>Last Updated:</strong> Phase 5.92 (「全て消去」ボタンを削除。「地図を写真に保存」を「現在地」と同じ大きさのアイコンボタンにして右下に縦並び配置（現在地が上、保存が下）)</p>
         <span class="spec-status-badge">App A (Stable)</span>
     </header>
 
@@ -593,7 +603,8 @@ canvas.sketch-canvas { display: block; width: 100%; }
             <li>モード：位置図（メイン・赤）/ 地図メモ（サブ・青）/ 白紙メモ（Canvas）/ GPS修正モード</li>
             <li><strong>maxZoom:25（オーバーズーム対応）:</strong> maxNativeZoom:18（地理院）/19（ESRI）でタイルを拡大表示。</li>
             <li><strong>地図初期化タイミング:</strong> storageManager.load()では初期化せず、アコーディオンを開いたときにinvalidateSize()→ペンディングデータ復元の順で実行。DOMサイズ0での初期化を防ぐ。</li>
-            <li><strong>地図の高さを残り領域いっぱいに動的計算（Phase 5.88追加）:</strong> `#map`はHTML上`height:55vh`が初期値だが、mapApp.fitMapHeight()が地図要素の現在位置から#main-content（画面の残り表示領域）の下端までを実測し、操作ボタン行（.map-controls）の高さを差し引いた分を地図の実高さとして動的に割り当てる。縦横比の異なる端末・画面回転・ウィンドウリサイズでも、操作ボタンの下に空白ができないようにするための対策。switchMapMode()（位置図タブを開いた時）とwindow resizeイベントの両方で再計算する。</li>
+            <li><strong>地図の高さを残り領域いっぱいに動的計算（Phase 5.88追加、5.91で.map-controls分の差し引きを廃止）:</strong> `#map`はHTML上`height:55vh`が初期値だが、mapApp.fitMapHeight()が地図要素の現在位置から#main-content（画面の残り表示領域）の下端までを実測し、その分を地図の実高さとして動的に割り当てる。縦横比の異なる端末・画面回転・ウィンドウリサイズでも、地図の下に空白ができないようにするための対策。switchMapMode()（位置図タブを開いた時）とwindow resizeイベントの両方で再計算する。Phase 5.91で「地図を写真に保存」「全て消去」ボタンをフローティング化し地図の下に専有スペースを取る要素が無くなったため、以前あった操作ボタン行の高さの差し引き計算は削除した。</li>
+            <li><strong>フローティング操作ボタン（Phase 5.90〜5.92）:</strong> 「現在地」「地図を写真に保存」（右下、ベースマップ選択と同じ44pxのアイコンボタン、.map-icon-btnで統一。現在地が上、保存が下の縦並び）、「テキスト表示→注釈」（左下、チェックボックス）を、いずれも地図に重ねて表示するフローティングUIとして配置している。「全て消去」ボタンはPhase 5.92で削除した。地図の下に専有スペースを取る固定要素は無くなり、地図表示領域を最大限確保できるようになった。</li>
             <li><strong>地図キャッシュ:</strong> 表示したタイルを自動でCache Storageに蓄積（Stale-While-Revalidate方式）。意図的な一括先読み機能はUI非搭載。</li>
             <li><strong>写真の位置図表示（Phase 5.75追加）:</strong> 位置情報を持つ写真をphotos[]から抽出し、mapApp.photoLayerGroupにカメラアイコン（📷）マーカーとして表示。位置図タブを開くたび（アコーディオン展開・GPS修正フロー開始時）にmapApp.renderPhotoMarkers()で再描画する。</li>
             <li><strong>撮影方向の矢印表示:</strong> azimuth記録済みの写真は、カメラアイコンから赤い矢印を伸ばして撮影方向を示す（0°=真北、時計回りに回転）。azimuth未記録の写真はアイコンのみ。選択中の写真は青リングで強調。マーカータップで写真・タグ・方位・備考をポップアップ表示し、対象写真を選択状態にする。</li>
@@ -658,6 +669,10 @@ canvas.sketch-canvas { display: block; width: 100%; }
         <div class="spec-table-wrap">
         <table>
             <tr><th>Phase</th><th>内容</th></tr>
+            <tr><td>5.92</td><td>「全て消去」ボタン（mapApp.clearLayers）を削除。「地図を写真に保存」ボタンをユーザー提供のダウンロードSVGアイコンを使ったアイコンボタン（SaveMapControl）にし、「現在地」（LocateControl）と同じ大きさ・スタイル（.map-icon-btn、旧.locate-control-btnから改名）で右下に縦並び配置した。Leafletのbottomright位置は後から追加したコントロールほど地図中心側（上）に積み上がる仕様のため、「現在地」を上にするにはSaveMapControlを先にLocateControlを後にaddTo()する必要があった。</td></tr>
+            <tr><td>5.91</td><td>「地図を写真に保存」「全て消去」ボタンを、地図の下に専有スペースを取る固定行（.map-controls）から、地図に重ねて表示するフローティングボタン（.map-floating-actions）に変更。右下の「現在地」ボタン・左下の「注釈」チェックボックスと重ならない高さ（bottom:85px）に配置。ボタン行が専有スペースを取らなくなった分、mapApp.fitMapHeight()の計算からも差し引き分を削除し、地図表示領域がさらに広がった。</td></tr>
+            <tr><td>5.90</td><td>「現在地」ボタンを.map-controlsの通常ボタンからフローティングのアイコンボタン（LocateControl、右下）に変更。ベースマップ選択（レイヤーコントロールのトグルアイコン）と同じ大きさ（通常36px/タッチ端末44px）に揃え、ユーザー提供のSVGアイコンを埋め込んだ。あわせて「テキスト表示」チェックボックス（TextToggleControl）を右下から左下へ移動し、表記を「注釈」に変更した。</td></tr>
+            <tr><td>5.89</td><td>白紙メモ（sketchApp）のキャンバスも、地図と同じ理由（固定height = window.innerHeight*0.55）で操作ボタン（全消去/写真に保存）の下に空白ができていた。resizeAndClear()を修正し、#main-content下端までを実測してキャンバス高さを動的に割り当てるようにした（地図と違いwindow resizeでは再計算しない＝描画中の内容が消えるのを防ぐため、白紙メモタブを開いた時のみ再計算）。</td></tr>
             <tr><td>5.88</td><td>`#map`が固定`height:55vh`だったため、ビューポートの縦横比によっては#main-content（残り全領域）より地図が低くなり、操作ボタンの下に大きな空白ができていた（Phase 5.87の修正はこの根本原因ではなかった）。mapApp.fitMapHeight()を追加し、地図要素の現在位置から#main-content下端までを実測して地図の高さを動的に割り当てるようにした。位置図タブを開いた時・ウィンドウリサイズ時（画面回転含む）に再計算する。</td></tr>
             <tr><td>5.87</td><td>位置図エリアの`.accordion-content`に`no-padding`クラスが指定されていたが、対応するCSSルールが未定義だったため、通常のpadding:15pxがそのまま適用され、地図・操作ボタンの周囲（特にボタン下）に意図しない余白ができていた。`.accordion-content.no-padding { padding: 0; }`を追加して修正。</td></tr>
             <tr><td>5.86</td><td>位置図タブの「現在地」ボタン（mapApp.setCurrentLocation）は地図をパン・ズームするだけで自分の位置を示すマーカーが無かったため、Leafletの`locationfound`イベントで取得した座標に青丸マーカー＋精度円（accuracy）を表示するようにした。約5秒後に自動で消える。連打時は前回の表示・タイマーを解除してから出し直す。</td></tr>
@@ -683,7 +698,7 @@ canvas.sketch-canvas { display: block; width: 100%; }
                 <div style="padding: 20px;">
                     <div style="padding: 15px; background: #e8f6f3; border: 1px solid #a2d9ce; border-radius: 4px;">
                         <p style="margin:0 0 10px 0; font-weight:bold; color: #16a085;">アプリ更新管理</p>
-                        <p style="margin:0 0 5px 0; font-size:0.9rem;">現在のバージョン: <strong id="current-version-display">Phase 5.88</strong></p>
+                        <p style="margin:0 0 5px 0; font-size:0.9rem;">現在のバージョン: <strong id="current-version-display">Phase 5.92</strong></p>
                         <div style="display:flex; align-items:center; gap:10px;">
                             <button id="update-app-btn" type="button" class="btn-main" style="width:auto; padding:8px 16px;" onclick="appControl.checkForUpdate()">更新を確認する</button>
                             <span id="update-status" style="font-size:0.9rem; color:#555;"></span>
@@ -3475,16 +3490,54 @@ window.mapApp = {
 
             this._textVisible = true;
             const TextToggleControl = L.Control.extend({
-                options: { position: 'bottomright' },
+                options: { position: 'bottomleft' },
                 onAdd: function() {
                     const div = L.DomUtil.create('div', 'map-text-toggle-panel');
-                    div.innerHTML = `<label><input type="checkbox" checked> テキスト表示</label>`;
+                    div.innerHTML = `<label><input type="checkbox" checked> 注釈</label>`;
                     L.DomEvent.disableClickPropagation(div);
                     div.querySelector('input').addEventListener('change', (e) => mapApp.setTextVisibility(e.target.checked));
                     return div;
                 }
             });
             new TextToggleControl().addTo(this.map);
+
+            // 「現在地」「地図を写真に保存」ボタンをフローティングのアイコンボタンにして
+            // 右下へ縦に並べて配置（現在地が上、保存が下）。ベースマップ選択（レイヤー
+            // コントロールのトグルアイコン）と同じ見た目・大きさに揃えるため、Leafletの
+            // デフォルトサイズ（通常36px、タッチ端末は44px）を.map-icon-btn/
+            // .leaflet-touch .map-icon-btnで再現している。
+            // 【重要】Leafletのbottomright位置は後から追加したコントロールほど上（map中心側）に
+            // 積み上がる仕様のため、「現在地」を上にするには「地図を写真に保存」を先に、
+            // 「現在地」を後に addTo() する必要がある。
+            const SaveMapControl = L.Control.extend({
+                options: { position: 'bottomright' },
+                onAdd: function() {
+                    const div = L.DomUtil.create('div', 'leaflet-bar');
+                    const btn = L.DomUtil.create('a', 'map-icon-btn', div);
+                    btn.href = '#';
+                    btn.title = '地図を写真に保存';
+                    btn.innerHTML = `<svg viewBox="0 0 320 327" xmlns="http://www.w3.org/2000/svg"><g transform="matrix(1,0,0,1,-15,-41.85)"><path d="M175,20L175,174.08" style="fill:none;stroke:currentColor;stroke-width:30px;stroke-linecap:round;"/></g><g transform="matrix(1,0,0,1,-15,-41.85)"><path d="M105,120L175,190L245,120" style="fill:none;stroke:currentColor;stroke-width:30px;stroke-linecap:round;stroke-linejoin:round;"/></g><g transform="matrix(1,0,0,1,-15,-41.85)"><path d="M30,210L30,270L320,270L320,210" style="fill:none;stroke:currentColor;stroke-width:30px;stroke-linecap:round;stroke-linejoin:round;"/></g></svg>`;
+                    L.DomEvent.disableClickPropagation(div);
+                    L.DomEvent.on(btn, 'click', (e) => { L.DomEvent.preventDefault(e); mapApp.captureToPhoto(); });
+                    return div;
+                }
+            });
+            new SaveMapControl().addTo(this.map);
+
+            const LocateControl = L.Control.extend({
+                options: { position: 'bottomright' },
+                onAdd: function() {
+                    const div = L.DomUtil.create('div', 'leaflet-bar');
+                    const btn = L.DomUtil.create('a', 'map-icon-btn', div);
+                    btn.href = '#';
+                    btn.title = '現在地を表示';
+                    btn.innerHTML = `<svg viewBox="0 0 800 800" xmlns="http://www.w3.org/2000/svg"><g transform="matrix(-1,0,0,1,400.001,449.2397)"><path d="M0.001,-98.478C27.194,-98.478 49.239,-76.433 49.239,-49.24C49.239,-22.045 27.194,0 0.001,0C-27.193,0 -49.238,-22.045 -49.238,-49.24C-49.238,-76.433 -27.193,-98.478 0.001,-98.478" style="fill:currentColor;"/></g><g transform="matrix(1,0,0,1,425.9043,230.3033)"><path d="M0,339.394L0,291.645L-51.808,291.645L-51.808,339.394C-125.759,328.153 -184.359,269.552 -195.601,195.601L-147.852,195.601L-147.852,143.793L-195.601,143.793C-184.359,69.842 -125.759,11.242 -51.808,0L-51.808,47.749L0,47.749L0,0C73.951,11.242 132.552,69.842 143.793,143.793L96.044,143.793L96.044,195.601L143.793,195.601C132.552,269.552 73.951,328.153 0,339.394M259.096,143.793L196.063,143.793C190.341,93.908 168.143,47.727 132.104,11.688C96.066,-24.349 49.885,-46.547 0,-52.27L0,-115.303L-51.808,-115.303L-51.808,-52.27C-101.693,-46.547 -147.875,-24.349 -183.912,11.689C-219.95,47.727 -242.148,93.908 -247.871,143.793L-310.904,143.793L-310.904,195.601L-247.871,195.601C-242.148,245.486 -219.95,291.667 -183.913,327.706C-147.875,363.744 -101.693,385.942 -51.808,391.665L-51.808,454.697L0,454.697L0,391.665C49.885,385.942 96.066,363.744 132.104,327.706C168.143,291.667 190.341,245.486 196.063,195.601L259.096,195.601L259.096,143.793Z" style="fill:currentColor;"/></g></svg>`;
+                    L.DomEvent.disableClickPropagation(div);
+                    L.DomEvent.on(btn, 'click', (e) => { L.DomEvent.preventDefault(e); mapApp.setCurrentLocation(); });
+                    return div;
+                }
+            });
+            new LocateControl().addTo(this.map);
         }
     },
 
@@ -3615,7 +3668,6 @@ window.mapApp = {
         layer.bindPopup(wrap);
     },
 
-    clearLayers() { if (confirm("全ての図形を消去しますか？")) { this.allDrawnItems.clearLayers(); this.updateMapSummary(); } },
     updateMapSummary() {
         let m = 0, s = 0; this.allDrawnItems.eachLayer(l => { if (l.options && l.options.isMain) m++; else s++; });
         const sum = document.querySelector('.accordion-header[data-group="map-area"] .summary-text');
@@ -3676,11 +3728,11 @@ window.mapApp = {
         const mainContent = document.getElementById('main-content');
         if (!mapEl || !mainContent || mapEl.offsetParent === null) return;
 
-        const controlsEl = document.querySelector('#map-container .map-controls');
-        const controlsHeight = controlsEl ? controlsEl.getBoundingClientRect().height : 0;
+        // 【Phase 5.91】地図を写真に保存/全て消去ボタンをフローティング化したことで、
+        // 地図の下に専有スペースを取る要素が無くなったため、差し引く高さは不要になった。
         const mainBottom = mainContent.getBoundingClientRect().bottom;
         const mapTop = mapEl.getBoundingClientRect().top;
-        const available = Math.round(mainBottom - mapTop - controlsHeight);
+        const available = Math.round(mainBottom - mapTop);
 
         if (available > 200) {
             mapEl.style.height = available + 'px';
@@ -3855,12 +3907,26 @@ window.sketchApp = {
         }
         this.resizeAndClear();
     },
+    // 【重要】以前はcanvas高さをwindow.innerHeight*0.55の固定値にしていたが、
+    // 地図（#map、Phase 5.88で修正済み）と同じ理由で、ビューポートの縦横比に
+    // よっては下の操作ボタン（全消去/写真に保存）の下に大きな空白ができていた。
+    // #main-content（残り表示領域）の下端までを実測し、操作ボタン行の高さを
+    // 差し引いた分をcanvasの高さに割り当てることで空白をなくす。
     resizeAndClear() {
         if(!this.canvas) return;
         const container = this.canvas.parentElement;
-        if (!container) return;
+        const mainContent = document.getElementById('main-content');
+        if (!container || !mainContent) return;
         const w = container.clientWidth;
-        const h = window.innerHeight * 0.55;
+        let h = Math.round(window.innerHeight * 0.55);
+        if (container.offsetParent !== null) {
+            const actionsEl = document.querySelector('#sketch-container .sketch-actions');
+            const actionsHeight = actionsEl ? actionsEl.getBoundingClientRect().height : 0;
+            const mainBottom = mainContent.getBoundingClientRect().bottom;
+            const containerTop = container.getBoundingClientRect().top;
+            const available = Math.round(mainBottom - containerTop - actionsHeight);
+            if (available > 150) h = available;
+        }
         if (this.canvas.width !== w || this.canvas.height !== h) {
             this.canvas.width = w;
             this.canvas.height = h;
