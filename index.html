@@ -20,7 +20,7 @@
             window.top.location = window.self.location.href;
         }
     </script>
-    <title>現場踏査写真管理アプリ(現場調査用) (Phase 5.78)</title>
+    <title>現場踏査写真管理アプリ(現場調査用) (Phase 5.79)</title>
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
     <link rel="apple-touch-icon" href="icon-192.png">
@@ -465,8 +465,8 @@ canvas.sketch-canvas { display: block; width: 100%; }
             <section id="content-spec" class="tab-content">
                 <div class="spec-container">
     <header style="border-bottom: 2px solid #333; margin-bottom: 20px; padding-bottom: 10px;">
-        <h2>被災状況調査システム 開発仕様書 (Phase 5.78)</h2>
-        <p><strong>Last Updated:</strong> Phase 5.78 (ヘッダー内のロゴ画像を削除)
+        <h2>被災状況調査システム 開発仕様書 (Phase 5.79)</h2>
+        <p><strong>Last Updated:</strong> Phase 5.79 (カメラロール保存が機能しない不具合を修正。navigator.share()のユーザー操作起点がリサイズ処理のawaitで失効していたのが原因)
         <p><strong>Status:</strong> App A (Stable)</p>
     </header>
 
@@ -529,7 +529,8 @@ canvas.sketch-canvas { display: block; width: 100%; }
             <li><strong>JZIPエクスポート時のEXIF書き込み:</strong> piexifjsでGPS座標・方位をJPEGに書き込む。エラー時フォールバック。</li>
             <li><strong>リサイズ横幅指定:</strong> 入出力タグで800/1200/1600/2000px・なしを選択。デフォルト1200px。</li>
             <li><strong>撮影ボタンの許可待ちロック解除ウォッチドッグ（Phase 5.77強化）:</strong> GPS（gpsManager）・方位センサー（azimuthManager）の許可ダイアログ応答前は撮影ボタンをdisabledにして、iOSでネイティブダイアログとカメラ起動が競合し以後カメラが起動しなくなる不具合を防いでいる（既存の仕組み）。これに加え、(1) ボタンのonclickを直接input.click()にせずphotoApp.triggerCameraInput()を経由させ、実行時にも許可待ち状態を再チェックする二重の安全策、(2) gpsManager.start()・azimuthManager.startListening()の双方に独自のウォッチドッグタイマー（12秒）を追加し、iOS側の許可応答（成功・拒否どちらのコールバック／Promise）が何らかの理由で永遠に返ってこなかった場合でも、一定時間後に強制的にpermissionPendingを解除してボタンを復帰させるようにした。watchPositionのtimeoutオプションは許可待ちも含めてカウントされる仕様のはずだが、iOS実機でこれが機能せずコールバックが呼ばれないまま固まるケースが確認されたための対策。</li>
-            <li><strong>撮影時にカメラロールへも保存（Phase 5.77追加）:</strong> 写真設定に「撮影時にカメラロールにも保存する」チェックボックス（既定ON、初期値保存/読み込み対象）を追加。ONの場合、handleCameraFile内で撮影直後の元画像（リサイズ前のFile）をmanagerApp._saveToCameraRoll()に渡し、Web Share API（navigator.share）でOS標準の共有シートを開く。<strong>注意:</strong> iOS Safariの仕様上、input captureで撮影した写真はWebページに渡されるだけでカメラロールへの自動保存はされず、Webページが無断で写真アプリに書き込むAPIも存在しないため、完全な自動・無音保存は不可能。共有シートでユーザーが「イメージを保存」をタップする一手間が必要になる。navigator.share/canShareが使えない環境（PC等）では何もしない（無害）。</li>
+            <li><strong>撮影時にカメラロールへも保存（Phase 5.77追加、5.79で不具合修正）:</strong> 写真設定に「撮影時にカメラロールにも保存する」チェックボックス（既定ON、初期値保存/読み込み対象）を追加。ONの場合、撮影直後の元画像（リサイズ前のFile）をmanagerApp._saveToCameraRoll()に渡し、Web Share API（navigator.share）でOS標準の共有シートを開く。<strong>注意:</strong> iOS Safariの仕様上、input captureで撮影した写真はWebページに渡されるだけでカメラロールへの自動保存はされず、Webページが無断で写真アプリに書き込むAPIも存在しないため、完全な自動・無音保存は不可能。共有シートでユーザーが「イメージを保存」をタップする一手間が必要になる。navigator.share/canShareが使えない環境（PC等）では何もしない（無害）。<br>
+                <strong>不具合修正（Phase 5.79）:</strong> 導入時、handleCameraFile内でresizeImage()のawait（FileReader読み込み・Imageデコード）を待ってから_saveToCameraRoll()を呼んでいたため、navigator.share()に必要なユーザー操作起点（トランジェントアクティベーション）が失効し、共有シートが開かず保存されない不具合があった。修正として、_saveToCameraRoll()の呼び出しをresizeImage()より前、changeイベント発火直後の同期実行区間に移動した。</li>
         </ul>
 
         <h4>4.3 地図機能</h4>
@@ -593,7 +594,7 @@ canvas.sketch-canvas { display: block; width: 100%; }
         <h3>7. PWA更新管理</h3>
         <div style="padding: 15px; background: #e8f6f3; border: 1px solid #a2d9ce; border-radius: 4px; margin-top: 10px;">
             <p style="margin:0 0 10px 0; font-weight:bold; color: #16a085;">アプリ更新管理</p>
-            <p style="margin:0 0 5px 0; font-size:0.9rem;">現在のバージョン: <strong id="current-version-display">Phase 5.78</strong></p>
+            <p style="margin:0 0 5px 0; font-size:0.9rem;">現在のバージョン: <strong id="current-version-display">Phase 5.79</strong></p>
             <div style="display:flex; align-items:center; gap:10px;">
                 <button id="update-app-btn" type="button" class="btn-main" style="width:auto; padding:8px 16px;" onclick="appControl.checkForUpdate()">更新を確認する</button>
                 <span id="update-status" style="font-size:0.9rem; color:#555;"></span>
@@ -4197,7 +4198,18 @@ window.photoApp = {
         const force43 = this._getForce43();
         const gps = gpsManager.getCurrentForPhoto();
         const saveToRoll = this._getSaveToCameraRoll();
-        for (const file of Array.from(input.files)) {
+        const files = Array.from(input.files);
+
+        // 【重要】navigator.share()はユーザー操作起点（トランジェントアクティベーション）が
+        // 必要で、この起点はごく短時間で失効する。resizeImage()のawait（FileReader読み込み・
+        // Imageデコード）を先に挟むとその間に起点が失効し、共有シートが開かなくなる
+        // （＝カメラロールに保存されない不具合の原因）。そのためリサイズより前、
+        // change イベント発火直後の同期実行区間で真っ先に共有を呼び出す。
+        if (saveToRoll) {
+            files.forEach(file => this._saveToCameraRoll(file));
+        }
+
+        for (const file of files) {
             const d = await this.resizeImage(file, targetW, force43);
             this.photos.push({
                 dataUrl: d, memo: "", tag: "補足",
@@ -4207,7 +4219,6 @@ window.photoApp = {
                 gpsAccuracy: gps ? gps.gpsAccuracy : null,
                 gpsFixed: false
             });
-            if (saveToRoll) this._saveToCameraRoll(file);
         }
         this.currentIndex = this.photos.length - 1;
         this.runSort();
@@ -4231,11 +4242,17 @@ window.photoApp = {
     // そのため完全な自動・無音保存は不可能で、撮影ごとに共有シートが開き一手間かかる点に注意。
     // 共有をサポートしない環境（PC等）では何もしない（機能自体が使えないだけで、エラーにはしない）。
     async _saveToCameraRoll(file) {
-        if (!navigator.share || !navigator.canShare || !navigator.canShare({ files: [file] })) return;
+        if (!navigator.share || !navigator.canShare || !navigator.canShare({ files: [file] })) {
+            console.warn("カメラロール保存: このブラウザ環境ではファイル共有(navigator.share)に対応していません");
+            return;
+        }
         try {
             await navigator.share({ files: [file] });
         } catch (e) {
-            if (e.name !== 'AbortError') console.warn("カメラロールへの共有に失敗", e);
+            // AbortError: ユーザーが共有シートをキャンセルした場合。想定内の操作なので何もしない。
+            if (e.name === 'AbortError') return;
+            console.warn("カメラロールへの共有に失敗", e);
+            window.uiHelper && uiHelper.showToast("カメラロールへの共有に失敗しました");
         }
     },
 
