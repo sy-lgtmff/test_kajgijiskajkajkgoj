@@ -20,7 +20,7 @@
             window.top.location = window.self.location.href;
         }
     </script>
-    <title>現場踏査写真管理アプリ(現場調査用) (Phase 5.82)</title>
+    <title>現場踏査写真管理アプリ(現場調査用) (Phase 5.83)</title>
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
     <link rel="apple-touch-icon" href="icon-192.png">
@@ -83,6 +83,14 @@ body { margin: 0; padding: 0; background-color: #666; font-family: sans-serif; d
 .header-tabs { display: flex; margin-top: 10px; gap: 2px; }
 .tab-btn { flex: 1; padding: 8px; border: none; background: rgba(255,255,255,0.1); color: white; cursor: pointer; }
 .tab-btn.active { background: var(--accent-color); font-weight: bold; }
+
+/* ヘルプタブ内のサブタブ（アプリ化の手順／開発方針） */
+.help-sub-tabs { display: flex; background: #fff; border-bottom: 1px solid #ddd; gap: 2px; position: sticky; top: 0; z-index: 400; }
+.help-tab-btn { flex: 1; padding: 10px 8px; border: none; background: #fff; border-bottom: 3px solid transparent; font-weight: bold; font-size: 0.85rem; color: #555; cursor: pointer; }
+.help-tab-btn:hover { background-color: #f0f0f0; }
+.help-tab-btn.active { color: var(--accent-color); border-bottom-color: var(--accent-color); }
+.help-tab-content { display: none; }
+.help-tab-content.active { display: block; animation: fadeIn 0.2s; }
 
 /* セクションタブ（旧アコーディオン） */
 .section-tabs {
@@ -147,9 +155,9 @@ canvas.sketch-canvas { display: block; width: 100%; }
         <h1 class="app-title">現場踏査写真管理アプリ(現場調査用)</h1>
     </div>
     <nav class="header-tabs">
-        <button class="tab-btn active" data-target="content-app">アプリ</button>
-        <button class="tab-btn" data-target="content-install">アプリ化の手順</button>
-        <button class="tab-btn" data-target="content-spec">開発方針</button>
+        <button class="tab-btn active" data-target="content-app">ホーム</button>
+        <button class="tab-btn" data-target="content-help">ヘルプ</button>
+        <button class="tab-btn" data-target="content-update">更新</button>
     </nav>
 </header>
         <nav class="section-tabs active" id="section-tabs">
@@ -417,7 +425,12 @@ canvas.sketch-canvas { display: block; width: 100%; }
 </div>
 
             </section>
-            <section id="content-install" class="tab-content">
+            <section id="content-help" class="tab-content">
+                <nav class="help-sub-tabs">
+                    <button class="help-tab-btn active" data-help-target="help-install">アプリ化の手順</button>
+                    <button class="help-tab-btn" data-help-target="help-spec">開発方針</button>
+                </nav>
+                <div id="help-install" class="help-tab-content active">
                 <div class="install-guide-container" style="padding: 20px; color: #333;">
     <h2>アプリとしてインストールする方法</h2>
     <p style="font-size: 0.9rem; margin-bottom: 20px;">
@@ -461,13 +474,12 @@ canvas.sketch-canvas { display: block; width: 100%; }
         </a>
     </div>
 </div>
-
-            </section>
-            <section id="content-spec" class="tab-content">
+                </div>
+                <div id="help-spec" class="help-tab-content">
                 <div class="spec-container">
     <header style="border-bottom: 2px solid #333; margin-bottom: 20px; padding-bottom: 10px;">
-        <h2>被災状況調査システム 開発仕様書 (Phase 5.82)</h2>
-        <p><strong>Last Updated:</strong> Phase 5.82 (写真キャッシュ(IndexedDB)の信頼性を強化。syncAllを単一トランザクションで原子化し中断時のデータ消失リスクを解消。撮影のたびに二重実行されていたDB同期を1回に削減。「新規調査開始」でIndexedDBの写真キャッシュが削除されない不具合を修正)
+        <h2>被災状況調査システム 開発仕様書 (Phase 5.83)</h2>
+        <p><strong>Last Updated:</strong> Phase 5.83 (ヘッダータブを整理。「アプリ」→「ホーム」に改名し、「アプリ化の手順」「開発方針」は「ヘルプ」タブ内のサブタブに統合。旧「開発方針」末尾のアプリ更新管理は独立した「更新」タブへ移動)
         <p><strong>Status:</strong> App A (Stable)</p>
     </header>
 
@@ -498,7 +510,7 @@ canvas.sketch-canvas { display: block; width: 100%; }
             <tr><td><code>build.js</code></td><td>ビルドスクリプト</td><td>App A専用。piexif.jsを先頭に結合する</td></tr>
             <tr><td><code>index.html.template</code></td><td>App A 骨格</td><td>プレースホルダーは /* INSERT: CSS */ 等の形式</td></tr>
             <tr><td><code>style.css</code></td><td>共通スタイル</td><td>CSS変数、アコーディオン、地図UI、スケッチUIを定義</td></tr>
-            <tr><td><code>header.html</code></td><td>共通ヘッダー</td><td>ロゴ、タブ（アプリ/アプリ化の手順/開発方針）</td></tr>
+            <tr><td><code>header.html</code></td><td>共通ヘッダー</td><td>タブ（ホーム/ヘルプ/更新）。ヘルプ内にサブタブ（アプリ化の手順/開発方針）</td></tr>
             <tr><td><code>introduction.html</code></td><td>アプリ本体UI</td><td>アコーディオン群（管理項目〜入出力）。位置図エリアにGPS修正バナー</td></tr>
             <tr><td><code>spec.html</code></td><td>開発仕様書</td><td>本ファイル（アプリ内「開発方針」タブに埋め込み）</td></tr>
             <tr><td><code>install_guide.html</code></td><td>インストール手順</td><td>iPhone/Android向けPWA追加手順・統合管理版DLリンク</td></tr>
@@ -559,7 +571,7 @@ canvas.sketch-canvas { display: block; width: 100%; }
             <li>写真はdataUrlを保存しない。メタ情報（tag・memo・azimuth・lat・lng・gpsAccuracy・gpsFixed）のみ保存。</li>
             <li>復元時はメタ情報のみ復元。実画像はJZIP読み込みで復元する運用。</li>
             <li><strong>写真キャッシュ(IndexedDB/photoStorage)の信頼性強化（Phase 5.82）:</strong> 実画像本体はIndexedDB（photoStorage、id=配列インデックスで管理）にキャッシュしている。以前のsyncAll()は「clearAll()で全消去→1件ずつsave()で書き直し」という別々のトランザクションで実装しており、この間にアプリが強制終了・OSによるバックグラウンド一時停止・電源断等で中断されると、消去後・書き直し未完了のまま写真データが失われるリスクがあった。修正として、clear()と全put()を同一のIndexedDBトランザクションにまとめ、オールオアナッシング（中断時は自動ロールバックされ、消去前の状態がそのまま保持される）にした。また、撮影の度にrunSort()内部と呼び出し元(handleCameraFile/handleFileSelect)の両方でsyncAll()が二重に走っていたのも、runSort()側に一本化して削減した（runSortをasync化し、呼び出し元はawaitするだけに変更）。</li>
-            <li><strong>「新規調査開始」でIndexedDBが消されない不具合修正（Phase 5.82）:</strong> ツールバーの「新規調査開始」（uiHelper.confirmReset→appControl.executeClear）は画面上の写真一覧（photoApp.photos）を空にするだけで、IndexedDB側の写真データは削除されておらず、前回調査の写真キャッシュが消えずに残り続けていた。appControl.clearAll()側は元々photoStorage.clearAll()を呼んでいたが、こちらのexecuteClear()には無かったための漏れ。executeClear()にもphotoStorage.clearAll()の呼び出しを追加した。</li>
+            <li><strong>「新規調査開始」でIndexedDBが消されない不具合修正（Phase 5.82、更新管理UIは5.83で「更新」タブへ移動）:</strong> ツールバーの「新規調査開始」（uiHelper.confirmReset→appControl.executeClear）は画面上の写真一覧（photoApp.photos）を空にするだけで、IndexedDB側の写真データは削除されておらず、前回調査の写真キャッシュが消えずに残り続けていた。appControl.clearAll()側は元々photoStorage.clearAll()を呼んでいたが、こちらのexecuteClear()には無かったための漏れ。executeClear()にもphotoStorage.clearAll()の呼び出しを追加した。</li>
         </ul>
 
         <h4>4.6 PWA・デプロイ</h4>
@@ -595,18 +607,24 @@ canvas.sketch-canvas { display: block; width: 100%; }
     </section>
 
     <section>
-        <h3>7. PWA更新管理</h3>
-        <div style="padding: 15px; background: #e8f6f3; border: 1px solid #a2d9ce; border-radius: 4px; margin-top: 10px;">
-            <p style="margin:0 0 10px 0; font-weight:bold; color: #16a085;">アプリ更新管理</p>
-            <p style="margin:0 0 5px 0; font-size:0.9rem;">現在のバージョン: <strong id="current-version-display">Phase 5.82</strong></p>
-            <div style="display:flex; align-items:center; gap:10px;">
-                <button id="update-app-btn" type="button" class="btn-main" style="width:auto; padding:8px 16px;" onclick="appControl.checkForUpdate()">更新を確認する</button>
-                <span id="update-status" style="font-size:0.9rem; color:#555;"></span>
-            </div>
-        </div>
+        <h3>7. アプリ更新管理について</h3>
+        <p>アプリのバージョン確認・更新は「更新」タブ（ヘッダーの3つ目のタブ）に移動した（Phase 5.83）。以前はこの「開発方針」タブの末尾にあったが、独立したタブに切り出し、更新確認だけを目的に開けるようにした。</p>
     </section>
 </div>
+                </div>
+            </section>
 
+            <section id="content-update" class="tab-content">
+                <div style="padding: 20px;">
+                    <div style="padding: 15px; background: #e8f6f3; border: 1px solid #a2d9ce; border-radius: 4px;">
+                        <p style="margin:0 0 10px 0; font-weight:bold; color: #16a085;">アプリ更新管理</p>
+                        <p style="margin:0 0 5px 0; font-size:0.9rem;">現在のバージョン: <strong id="current-version-display">Phase 5.83</strong></p>
+                        <div style="display:flex; align-items:center; gap:10px;">
+                            <button id="update-app-btn" type="button" class="btn-main" style="width:auto; padding:8px 16px;" onclick="appControl.checkForUpdate()">更新を確認する</button>
+                            <span id="update-status" style="font-size:0.9rem; color:#555;"></span>
+                        </div>
+                    </div>
+                </div>
             </section>
         </main>
     </div>
@@ -5361,6 +5379,14 @@ document.addEventListener('DOMContentLoaded', () => {
         document.querySelectorAll('.tab-content').forEach(c => c.classList.toggle('active', c.id === t.dataset.target));
         const sectionTabs = document.getElementById('section-tabs');
         if (sectionTabs) sectionTabs.classList.toggle('active', t.dataset.target === 'content-app');
+    }));
+    // 「ヘルプ」タブ内のサブタブ（アプリ化の手順／開発方針）切替。
+    // 上の.tab-btn/.tab-contentとは別のクラス名にして、トップレベルのタブ切替と
+    // 干渉しないようにしている。
+    document.querySelectorAll('.help-tab-btn').forEach(t => t.addEventListener('click', () => {
+        document.querySelectorAll('.help-tab-btn').forEach(b => b.classList.remove('active'));
+        t.classList.add('active');
+        document.querySelectorAll('.help-tab-content').forEach(c => c.classList.toggle('active', c.id === t.dataset.helpTarget));
     }));
     document.querySelectorAll('.accordion-header').forEach(h => h.addEventListener('click', () => {
         uiHelper.activateSection(h.dataset.group);
