@@ -20,7 +20,7 @@
             window.top.location = window.self.location.href;
         }
     </script>
-    <title>現場踏査写真管理アプリ(現場調査用) (Phase 5.80)</title>
+    <title>現場踏査写真管理アプリ(現場調査用) (Phase 5.81)</title>
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
     <link rel="apple-touch-icon" href="icon-192.png">
@@ -268,6 +268,7 @@ canvas.sketch-canvas { display: block; width: 100%; }
                         <option value="近景">タグ: 近景</option>
                         <option value="地図メモ">タグ: 地図メモ</option>
                     </select>
+                    <button type="button" class="btn-sub" style="flex:1;" onclick="photoApp.saveCurrentPhotoToCameraRoll(this)">📥 保存</button>
                     <button type="button" class="btn-sub" style="flex:1; background:#e74c3c;" onclick="photoApp.delete()">削除</button>
                 </div>
 
@@ -465,8 +466,8 @@ canvas.sketch-canvas { display: block; width: 100%; }
             <section id="content-spec" class="tab-content">
                 <div class="spec-container">
     <header style="border-bottom: 2px solid #333; margin-bottom: 20px; padding-bottom: 10px;">
-        <h2>被災状況調査システム 開発仕様書 (Phase 5.80)</h2>
-        <p><strong>Last Updated:</strong> Phase 5.80 (カメラロール保存の原因切り分け用に、失敗パターンごとの診断トーストを追加)
+        <h2>被災状況調査システム 開発仕様書 (Phase 5.81)</h2>
+        <p><strong>Last Updated:</strong> Phase 5.81 (撮影直後の自動カメラロール保存はiOS実機で活性化不足のため必ず失敗する端末があると判明。写真ツールバーに手動保存ボタンを追加)
         <p><strong>Status:</strong> App A (Stable)</p>
     </header>
 
@@ -529,8 +530,9 @@ canvas.sketch-canvas { display: block; width: 100%; }
             <li><strong>JZIPエクスポート時のEXIF書き込み:</strong> piexifjsでGPS座標・方位をJPEGに書き込む。エラー時フォールバック。</li>
             <li><strong>リサイズ横幅指定:</strong> 入出力タグで800/1200/1600/2000px・なしを選択。デフォルト1200px。</li>
             <li><strong>撮影ボタンの許可待ちロック解除ウォッチドッグ（Phase 5.77強化）:</strong> GPS（gpsManager）・方位センサー（azimuthManager）の許可ダイアログ応答前は撮影ボタンをdisabledにして、iOSでネイティブダイアログとカメラ起動が競合し以後カメラが起動しなくなる不具合を防いでいる（既存の仕組み）。これに加え、(1) ボタンのonclickを直接input.click()にせずphotoApp.triggerCameraInput()を経由させ、実行時にも許可待ち状態を再チェックする二重の安全策、(2) gpsManager.start()・azimuthManager.startListening()の双方に独自のウォッチドッグタイマー（12秒）を追加し、iOS側の許可応答（成功・拒否どちらのコールバック／Promise）が何らかの理由で永遠に返ってこなかった場合でも、一定時間後に強制的にpermissionPendingを解除してボタンを復帰させるようにした。watchPositionのtimeoutオプションは許可待ちも含めてカウントされる仕様のはずだが、iOS実機でこれが機能せずコールバックが呼ばれないまま固まるケースが確認されたための対策。</li>
-            <li><strong>撮影時にカメラロールへも保存（Phase 5.77追加、5.79で不具合修正）:</strong> 写真設定に「撮影時にカメラロールにも保存する」チェックボックス（既定ON、初期値保存/読み込み対象）を追加。ONの場合、撮影直後の元画像（リサイズ前のFile）をmanagerApp._saveToCameraRoll()に渡し、Web Share API（navigator.share）でOS標準の共有シートを開く。<strong>注意:</strong> iOS Safariの仕様上、input captureで撮影した写真はWebページに渡されるだけでカメラロールへの自動保存はされず、Webページが無断で写真アプリに書き込むAPIも存在しないため、完全な自動・無音保存は不可能。共有シートでユーザーが「イメージを保存」をタップする一手間が必要になる。navigator.share/canShareが使えない環境（PC等）では何もしない（無害）。<br>
-                <strong>不具合修正（Phase 5.79）:</strong> 導入時、handleCameraFile内でresizeImage()のawait（FileReader読み込み・Imageデコード）を待ってから_saveToCameraRoll()を呼んでいたため、navigator.share()に必要なユーザー操作起点（トランジェントアクティベーション）が失効し、共有シートが開かず保存されない不具合があった。修正として、_saveToCameraRoll()の呼び出しをresizeImage()より前、changeイベント発火直後の同期実行区間に移動した。</li>
+            <li><strong>撮影時にカメラロールへも保存（Phase 5.77追加、5.79〜5.81で調査・仕様変更）:</strong> 写真設定に「撮影時にカメラロールにも保存する」チェックボックス（既定ON、初期値保存/読み込み対象）を追加。<strong>注意:</strong> iOS Safariの仕様上、input captureで撮影した写真はWebページに渡されるだけでカメラロールへの自動保存はされず、Webページが無断で写真アプリに書き込むAPIも存在しないため、完全な自動・無音保存は不可能。唯一の方法はWeb Share API（navigator.share）でOS標準の共有シートを開き、ユーザーが「イメージを保存」をタップすること。<br>
+                <strong>Phase 5.79の修正:</strong> handleCameraFile内でresizeImage()のawaitを待ってから共有を呼んでいたためnavigator.share()に必要なユーザー操作起点（トランジェントアクティベーション）が失効していた不具合を修正（呼び出し順序をリサイズより前に変更）。<br>
+                <strong>Phase 5.80〜5.81で判明した根本問題:</strong> 呼び出し順序を直しても、実機ではカメラ撮影後のinput[change]イベントに十分なユーザー操作起点が伴わない端末があり、navigator.share()が必ず失敗することを確認した（診断トーストで`NotAllowedError`等を確認）。changeイベント経由の自動保存はブラウザの実装によって信頼できないため、<strong>写真ツールバーに「📥 保存」ボタン（managerApp.saveCurrentPhotoToCameraRoll）を新設し、表示中の写真をユーザーの直接タップから共有する方式に変更</strong>。ボタンの直接クリックは常に新鮮な操作起点を伴うため確実に動作する。撮影直後の自動保存（_saveToCameraRoll(file, {auto:true})）は既定ONのままベストエフォートで試行し続けるが、失敗時は「📥保存」ボタンの利用を促すトーストを表示する。</li>
         </ul>
 
         <h4>4.3 地図機能</h4>
@@ -594,7 +596,7 @@ canvas.sketch-canvas { display: block; width: 100%; }
         <h3>7. PWA更新管理</h3>
         <div style="padding: 15px; background: #e8f6f3; border: 1px solid #a2d9ce; border-radius: 4px; margin-top: 10px;">
             <p style="margin:0 0 10px 0; font-weight:bold; color: #16a085;">アプリ更新管理</p>
-            <p style="margin:0 0 5px 0; font-size:0.9rem;">現在のバージョン: <strong id="current-version-display">Phase 5.80</strong></p>
+            <p style="margin:0 0 5px 0; font-size:0.9rem;">現在のバージョン: <strong id="current-version-display">Phase 5.81</strong></p>
             <div style="display:flex; align-items:center; gap:10px;">
                 <button id="update-app-btn" type="button" class="btn-main" style="width:auto; padding:8px 16px;" onclick="appControl.checkForUpdate()">更新を確認する</button>
                 <span id="update-status" style="font-size:0.9rem; color:#555;"></span>
@@ -4206,7 +4208,7 @@ window.photoApp = {
         // （＝カメラロールに保存されない不具合の原因）。そのためリサイズより前、
         // change イベント発火直後の同期実行区間で真っ先に共有を呼び出す。
         if (saveToRoll) {
-            files.forEach(file => this._saveToCameraRoll(file));
+            files.forEach(file => this._saveToCameraRoll(file, { auto: true }));
         }
 
         for (const file of files) {
@@ -4234,6 +4236,24 @@ window.photoApp = {
         return cb ? cb.checked : true;
     },
 
+    // ---- 写真ツールバーの「📥 保存」ボタン：表示中の写真を手動でカメラロールへ共有する ----
+    // 【重要】撮影直後の自動保存（change イベント経由）は端末によってはユーザー操作起点が
+    // 伴わずnavigator.share()が必ず失敗することを確認したため、このボタンを用意した。
+    // ボタンの直接タップから呼ばれるため、常に新鮮な操作起点を伴い確実に動作する。
+    async saveCurrentPhotoToCameraRoll(btn) {
+        const p = this.photos[this.currentIndex];
+        if (!p) { window.uiHelper && uiHelper.showToast("写真が選択されていません"); return; }
+        try {
+            const res = await fetch(p.dataUrl);
+            const blob = await res.blob();
+            const file = new File([blob], `photo_${this.currentIndex + 1}.jpg`, { type: blob.type || 'image/jpeg' });
+            await this._saveToCameraRoll(file);
+        } catch (e) {
+            console.warn("カメラロール保存(手動)に失敗", e);
+            window.uiHelper && uiHelper.showToast("保存処理でエラーが発生しました");
+        }
+    },
+
     // ---- 撮影した元画像（リサイズ前）をカメラロールにも保存する ----
     // 【重要】iOSのSafariでは、<input capture>で撮影した写真はWebページに渡されるだけで
     // カメラロールへは自動保存されない仕様（プライバシー上、Webページが無断で写真アプリに
@@ -4241,30 +4261,31 @@ window.photoApp = {
     // 共有シートを開き、ユーザー自身に「イメージを保存」をタップしてもらうこと。
     // そのため完全な自動・無音保存は不可能で、撮影ごとに共有シートが開き一手間かかる点に注意。
     // 共有をサポートしない環境（PC等）では何もしない（機能自体が使えないだけで、エラーにはしない）。
-    async _saveToCameraRoll(file) {
-        // 【デバッグ用】原因切り分けのため、失敗パターンごとに必ずトーストを出す。
-        // 「何も起きない」という報告があった場合、ここまで到達しているか自体が
-        // 不明だったため、無音で return していた分岐にも全てトーストを追加した。
-        if (!navigator.share) {
-            window.uiHelper && uiHelper.showToast("カメラロール保存: この端末は共有機能(Web Share API)に非対応です");
-            return;
-        }
-        if (!navigator.canShare) {
-            window.uiHelper && uiHelper.showToast("カメラロール保存: canShareに非対応の古いブラウザです");
-            return;
-        }
-        if (!navigator.canShare({ files: [file] })) {
-            window.uiHelper && uiHelper.showToast("カメラロール保存: この画像ファイルは共有できません(canShare=false)");
+    // opts.auto=true: 撮影直後の自動保存からの呼び出し（handleCameraFile経由）。
+    // 【重要判明事項】iOS実機で、カメラ撮影後のinput[change]イベント経由だと
+    // navigator.share()に必要なユーザー操作起点（トランジェントアクティベーション）が
+    // 端末によっては全く伴っておらず（呼び出し順序を直しても改善しなかった）、
+    // 必ず失敗する場合があることを確認した。そのため自動保存はあくまでベストエフォートとし、
+    // 失敗時は「📥保存」ボタン（saveCurrentPhotoToCameraRoll、直接のタップから呼ばれるため
+    // 確実に動作する）を使うよう案内する。
+    async _saveToCameraRoll(file, opts = {}) {
+        const auto = !!opts.auto;
+        if (!navigator.share || !navigator.canShare || !navigator.canShare({ files: [file] })) {
+            window.uiHelper && uiHelper.showToast(auto
+                ? "自動保存はこの端末では使えません。写真の「📥保存」ボタンをお使いください"
+                : "この端末では画像の共有に対応していません");
             return;
         }
         try {
             await navigator.share({ files: [file] });
-            window.uiHelper && uiHelper.showToast("共有シートを開きました");
+            if (!auto) window.uiHelper && uiHelper.showToast("共有シートを開きました");
         } catch (e) {
             // AbortError: ユーザーが共有シートをキャンセルした場合。想定内の操作なので何もしない。
             if (e.name === 'AbortError') return;
             console.warn("カメラロールへの共有に失敗", e);
-            window.uiHelper && uiHelper.showToast(`カメラロール保存に失敗: ${e.name || e.message}`);
+            window.uiHelper && uiHelper.showToast(auto
+                ? "自動保存に失敗しました。写真の「📥保存」ボタンから保存してください"
+                : `保存に失敗しました: ${e.name || e.message}`);
         }
     },
 
