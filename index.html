@@ -20,7 +20,7 @@
             window.top.location = window.self.location.href;
         }
     </script>
-    <title>現場踏査写真管理アプリ(現場調査用) (Phase 6.04)</title>
+    <title>現場踏査写真管理アプリ(現場調査用) (Phase 6.05)</title>
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
     <link rel="apple-touch-icon" href="icon-192.png">
@@ -169,6 +169,14 @@ body { margin: 0; padding: 0; background-color: #666; font-family: sans-serif; d
 /* トースト通知 */
 .toast-notification { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: rgba(44, 62, 80, 0.9); color: white; padding: 10px 20px; border-radius: 20px; font-size: 0.9rem; z-index: 3000; opacity: 0; transition: opacity 0.3s; pointer-events: none; }
 .toast-notification.show { opacity: 1; }
+/* 【重要】GPS・方位センサーの許可応答待ち中（gpsManager/azimuthManager.permissionPending）は、
+   この透明ガードを画面全体に重ねてタップを一切吸収する。撮影ボタンをdisabledにする既存の
+   対策だけでは、許可ダイアログ表示中にたまたま別の要素（撮影ボタン等）へタップが直接
+   届いてしまうケースを完全には防げなかったため、「許可待ち中はどこをタップしても写真タブを
+   タップしたのと同じ（＝何も起こらない）」という単純な状態にして、あらゆるタップが撮影
+   ボタン等へ渡らないようにする（iOSでネイティブ許可ダイアログとカメラ起動が競合し、以後
+   カメラが一切起動しなくなる不具合の根本防止）。 */
+#permission-pending-guard { display: none; position: fixed; inset: 0; z-index: 2500; background: transparent; }
 
 /* スケッチ機能 */
 .sketch-toolbar { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 5px; background: #fff; padding: 5px; border-radius: 4px; border: 1px solid #ddd; }
@@ -535,7 +543,7 @@ body.app-touch .sketch-icon-btn-trash { bottom: 29px; }
                 <div style="padding: 20px;">
                     <div style="padding: 15px; background: #e8f6f3; border: 1px solid #a2d9ce; border-radius: 4px;">
                         <p style="margin:0 0 10px 0; font-weight:bold; color: #16a085;">アプリ更新管理</p>
-                        <p style="margin:0 0 5px 0; font-size:0.9rem;">現在のバージョン: <strong id="current-version-display">Phase 6.04</strong></p>
+                        <p style="margin:0 0 5px 0; font-size:0.9rem;">現在のバージョン: <strong id="current-version-display">Phase 6.05</strong></p>
                         <div style="display:flex; align-items:center; gap:10px;">
                             <button id="update-app-btn" type="button" class="btn-main" style="width:auto; padding:8px 16px;" onclick="appControl.checkForUpdate()">更新を確認する</button>
                             <span id="update-status" style="font-size:0.9rem; color:#555;"></span>
@@ -544,6 +552,7 @@ body.app-touch .sketch-icon-btn-trash { bottom: 29px; }
 
                     <div style="margin-top: 20px;">
                         <p style="font-weight:bold; color:#2c3e50; margin-bottom:10px;">更新履歴</p>
+                        <details class="history-item"><summary>Phase 6.05</summary><p>GPS・方位センサーの許可ダイアログ応答待ち中に撮影ボタン等を押すと、iOSでネイティブ許可ダイアログとカメラ起動が競合し以後カメラが一切起動しなくなる不具合について、従来の対策（撮影ボタンのdisabled化＋triggerCameraInput内の二重チェック）に加えて、画面全体を覆う透明ガード（#permission-pending-guard）を追加した。gpsManager/azimuthManagerいずれかのpermissionPendingがtrueの間は、画面のどこをタップしても（＝写真タブをもう一度タップしたのと同じ「何も変わらない」操作として）吸収され、撮影ボタンを含むあらゆる要素へタップが届かなくなる。updateCameraBtnState()から表示/非表示を一元管理し、許可が下りる（またはウォッチドッグでタイムアウトする）と自動的に消える。</p></details>
                         <details class="history-item"><summary>Phase 6.04</summary><p>白紙メモの「戻る」（sketchApp.undo）ボタンを、ツールバー内のテキストボタンから、キャンバス右上に重ねるフローティングアイコンボタン（.sketch-icon-btn-undo）に変更した。「写真に保存」「全消去」と同じ.sketch-icon-btnベースのスタイルを流用し、サイズを完全に統一（非タッチ36px/タッチ44px）。アイコンはユーザー提供のUターン矢印SVGを使用し、fillをcurrentColorに変更してボタンの文字色を継承するようにした。位置はキャンバス右上（right:12px, top:10px）。</p></details>
                         <details class="history-item"><summary>Phase 6.03</summary><p>「現在地」ボタンを押すたびにズームレベルが強制的に変わってしまう不具合を修正。原因はmap.locate()に渡していたsetView:trueが内部で精度円の範囲に収まるようfitBounds相当の処理を行い、ユーザーが見ていたズームを勝手に変更していたこと。setViewとmaxZoomの指定をやめ、locationfound側でmap.setView(現在地, 現在のズーム)を呼ぶことで、ズームは維持したまま現在地へパンするだけにした。</p></details>
                         <details class="history-item"><summary>Phase 6.02</summary><p>位置図タブの「現在地」ボタンを押した際、現在地マーカーに向いている方向（方位）も矢印で表示するようにした。mapApp.setCurrentLocation()内でazimuthManager.startListening()も合わせて呼ぶ（iOSは方位センサーの許可ダイアログをユーザー操作起点でしか出せないため、現在地ボタンのクリックを起点にする）。現在地マーカーは従来の円形（circleMarker）からdivIconのSVGマーカーに変更し、写真マーカーと同様に方位分だけ回転した矢印を重ねて描画する。deviceorientationイベントを直接フックする仕組みが無いため、マーカー表示中（5秒間）は300ms間隔のポーリングでazimuthManager.currentAzimuthを読み直し、矢印の向きを追従させる。方位が未取得の場合は従来通り矢印なしの丸のみ表示する。</p></details>
@@ -619,6 +628,10 @@ body.app-touch .sketch-icon-btn-trash { bottom: 29px; }
 
     <!-- トースト通知 -->
     <div id="toast" class="toast-notification">保存しました</div>
+
+    <!-- GPS/方位センサーの許可応答待ち中に画面全体を覆う透明ガード。
+         updateCameraBtnState()から表示/非表示を切り替える。 -->
+    <div id="permission-pending-guard"></div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
@@ -4082,11 +4095,31 @@ window.photoStorage = {
 // そのため両方の許可が確定するまではボタン自体をdisabledにして、この競合が起きないようにする。
 window.updateCameraBtnState = function() {
     const btn = document.getElementById('photo-camera-btn');
-    if (!btn) return;
     const gpsPending    = !!(window.gpsManager && gpsManager.permissionPending);
     const azimuthPending = !!(window.azimuthManager && azimuthManager.permissionPending);
-    btn.disabled = gpsPending || azimuthPending;
+    const pending = gpsPending || azimuthPending;
+    if (btn) btn.disabled = pending;
+
+    // 許可待ち中は画面全体のガードも表示し、撮影ボタン以外へのタップも含めて
+    // 一切吸収する（#permission-pending-guardのCSSコメント参照）。
+    const guard = document.getElementById('permission-pending-guard');
+    if (guard) guard.style.display = pending ? 'block' : 'none';
 };
+
+// 許可待ちガードへのタップは何も起こさず、トーストで理由だけ知らせる
+// （＝写真タブをもう一度タップしたのと同じ「何も変わらない」操作にする）。
+document.addEventListener('DOMContentLoaded', () => {
+    const guard = document.getElementById('permission-pending-guard');
+    if (!guard) return;
+    guard.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        window.uiHelper && uiHelper.showToast("位置情報を確認中です。少し待ってください");
+    }, { passive: false });
+    guard.addEventListener('click', (e) => {
+        e.preventDefault();
+        window.uiHelper && uiHelper.showToast("位置情報を確認中です。少し待ってください");
+    });
+});
 
 // =============================================================================
 // GPS管理 (gpsManager)
