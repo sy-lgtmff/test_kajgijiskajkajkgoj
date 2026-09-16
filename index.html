@@ -20,7 +20,7 @@
             window.top.location = window.self.location.href;
         }
     </script>
-    <title>現場踏査写真管理アプリ(現場調査用) (Phase 6.00)</title>
+    <title>現場踏査写真管理アプリ(現場調査用) (Phase 6.01)</title>
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
     <link rel="apple-touch-icon" href="icon-192.png">
@@ -114,53 +114,8 @@ body { margin: 0; padding: 0; background-color: #666; font-family: sans-serif; d
 .tab-btn { flex: 1; padding: 8px; border: none; background: rgba(255,255,255,0.1); color: white; cursor: pointer; }
 .tab-btn.active { background: var(--accent-color); font-weight: bold; }
 
-/* ヘルプタブ内のサブタブ（アプリ化の手順／開発方針） */
-.help-sub-tabs { display: flex; background: #fff; border-bottom: 1px solid #ddd; gap: 2px; position: sticky; top: 0; z-index: 400; }
-.help-tab-btn { flex: 1; padding: 10px 8px; border: none; background: #fff; border-bottom: 3px solid transparent; font-weight: bold; font-size: 0.85rem; color: #555; cursor: pointer; }
-.help-tab-btn:hover { background-color: #f0f0f0; }
-.help-tab-btn.active { color: var(--accent-color); border-bottom-color: var(--accent-color); }
 .help-tab-content { display: none; }
 .help-tab-content.active { display: block; animation: fadeIn 0.2s; }
-
-/* 開発方針タブ（仕様書）のレイアウト */
-.spec-container { padding: 16px; background: #eef1f4; color: #2c3e50; font-size: 0.92rem; line-height: 1.7; }
-.spec-container .spec-header { background: var(--primary-color); color: #fff; border-radius: 8px; padding: 16px 18px; margin-bottom: 18px; }
-.spec-container .spec-header h2 { margin: 0 0 8px 0; font-size: 1.15rem; line-height: 1.4; }
-.spec-container .spec-header p { margin: 4px 0; font-size: 0.82rem; color: rgba(255,255,255,0.9); }
-.spec-container .spec-header .spec-status-badge { display: inline-block; margin-top: 4px; padding: 2px 10px; background: rgba(255,255,255,0.18); border-radius: 12px; font-size: 0.78rem; font-weight: bold; }
-.spec-container section { background: #fff; border-radius: 8px; padding: 16px 18px; margin-bottom: 14px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
-.spec-container section > h3 {
-    margin: 0 0 12px 0; padding-bottom: 8px; font-size: 1rem; color: var(--primary-color);
-    border-bottom: 2px solid var(--accent-color); display: flex; align-items: center; gap: 8px;
-}
-.spec-container section > h3::before {
-    content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--accent-color); flex-shrink: 0;
-}
-.spec-container h4 { margin: 18px 0 8px 0; font-size: 0.9rem; color: #34495e; padding-left: 8px; border-left: 4px solid var(--accent-color); }
-.spec-container h4:first-of-type { margin-top: 4px; }
-.spec-container p { margin: 8px 0; }
-.spec-container ul { margin: 8px 0; padding-left: 0; list-style: none; }
-.spec-container li { position: relative; padding: 6px 0 6px 18px; border-bottom: 1px dashed #e5e9ec; }
-.spec-container li:last-child { border-bottom: none; }
-.spec-container li::before { content: "▸"; position: absolute; left: 0; color: var(--accent-color); font-weight: bold; }
-.spec-container li strong { color: var(--primary-color); }
-.spec-container code {
-    background: #eef1f4; color: #c0392b; padding: 1px 5px; border-radius: 3px;
-    font-size: 0.85em; font-family: Menlo, Consolas, monospace;
-}
-.spec-container .spec-table-wrap { overflow-x: auto; margin: 10px 0; border: 1px solid #e0e4e8; border-radius: 6px; }
-/* 【重要】以前はmin-width:480pxを指定しており、スマホ幅（375px前後）では
-   常にテーブルが横スクロール状態になっていた。ページ自体は横スクロールしない
-   ものの、テーブル部分だけ横に余白ができ「スクロールしづらい」原因になって
-   いたため、min-widthを撤廃しビューポート幅に自然に収まるようにした
-   （代わりにセル内で折り返す。列が窮屈になるがスマホでの読みやすさを優先）。 */
-.spec-container table { width: 100%; border-collapse: collapse; font-size: 0.82rem; table-layout: fixed; }
-.spec-container table td, .spec-container table th { word-break: break-word; }
-.spec-container table th, .spec-container table td { padding: 8px 10px; text-align: left; border-bottom: 1px solid #e5e9ec; vertical-align: top; }
-.spec-container table th { background: var(--primary-color); color: #fff; white-space: nowrap; position: sticky; top: 0; }
-.spec-container table tr:last-child td { border-bottom: none; }
-.spec-container table tr:nth-child(even) td { background: #f7f9fa; }
-.spec-container table td:first-child { white-space: nowrap; font-weight: bold; color: var(--accent-color); }
 
 /* 「更新」タブの更新履歴（バージョンごとに開閉できるアコーディオン、デフォルト閉） */
 .history-item { border: 1px solid #e0e4e8; border-radius: 6px; margin-bottom: 6px; background: #fff; overflow: hidden; }
@@ -527,10 +482,6 @@ body.app-touch .sketch-icon-btn-trash { bottom: 29px; }
 
             </section>
             <section id="content-help" class="tab-content">
-                <nav class="help-sub-tabs">
-                    <button class="help-tab-btn active" data-help-target="help-install">アプリ化の手順</button>
-                    <button class="help-tab-btn" data-help-target="help-spec">開発方針</button>
-                </nav>
                 <div id="help-install" class="help-tab-content active">
                 <div class="install-guide-container" style="padding: 20px; color: #333;">
     <h2>アプリとしてインストールする方法</h2>
@@ -576,155 +527,13 @@ body.app-touch .sketch-icon-btn-trash { bottom: 29px; }
     </div>
 </div>
                 </div>
-                <div id="help-spec" class="help-tab-content">
-                <div class="spec-container">
-    <header class="spec-header">
-        <h2>被災状況調査システム 開発仕様書 (Phase 6.00)</h2>
-        <p><strong>Last Updated:</strong> Phase 6.00 (iPhone実機で「開発方針」タブに横スクロールができてしまう不具合を修正。原因は--app-max-widthがclamp(480px, 100vw, 1400px)で下限480pxを指定していたため、画面幅が480px未満の端末では#app-container自体が常に480px幅に固定され画面全体が横スクロール可能になっていたこと。下限を撤廃しmin(100vw, 1400px)に変更した)</p>
-        <span class="spec-status-badge">App A (Stable)</span>
-    </header>
-
-    <section>
-        <h3>1. プロジェクト背景と目的</h3>
-        <p>大規模災害時、通信遮断下にある現場から、確実に被害状況を事務所へ届けるための建設コンサルタント専用ツール。鹿児島県測量設計業協会の情報専門部会が主導して開発。</p>
-        <ul>
-            <li><strong>Local-First:</strong> サーバー・DB不要。PWAとしてスマホにインストールして動作する。</li>
-            <li><strong>Bucket Relay:</strong> データ連携は物理的なファイル移動（JZIP形式）で行う。</li>
-            <li><strong>Offline First:</strong> Service Workerにより地図タイル含めオフライン動作を保証する。</li>
-        </ul>
-    </section>
-
-    <section>
-        <h3>2. 開発運用ルール（SSOT）</h3>
-        <ul>
-            <li><strong>Phase管理:</strong> 会議の局面管理番号（X.XX）。package.jsonのversionおよびconfig.phaseを正とする。</li>
-            <li><strong>永遠のβ版:</strong> 現場フィードバックにより開発は永続する。「完成」と決めつけない。</li>
-            <li><strong>Spec as Code:</strong> 本ファイル（src/spec.html）はプロジェクトの唯一の正解情報（SSOT）である。</li>
-            <li><strong>コード提示ルール:</strong> 省略不可・全文表示・変更ファイルのみ・圧縮不可。最適化と意匠変更は判断を仰ぐ。毎回 package.json と spec.html を提示する。</li>
-        </ul>
-    </section>
-
-    <section>
-        <h3>3. ファイル構成 (File Manifest)</h3>
-        <div class="spec-table-wrap">
-        <table>
-            <tr><th>Filename</th><th>Role</th><th>Note</th></tr>
-            <tr><td><code>build.js</code></td><td>ビルドスクリプト</td><td>App A専用。piexif.jsを先頭に結合する</td></tr>
-            <tr><td><code>index.html.template</code></td><td>App A 骨格</td><td>プレースホルダーは /* INSERT: CSS */ 等の形式</td></tr>
-            <tr><td><code>style.css</code></td><td>共通スタイル</td><td>CSS変数、アコーディオン、地図UI、スケッチUIを定義</td></tr>
-            <tr><td><code>header.html</code></td><td>共通ヘッダー</td><td>タブ（ホーム/ヘルプ/更新）。ヘルプ内にサブタブ（アプリ化の手順/開発方針）</td></tr>
-            <tr><td><code>introduction.html</code></td><td>アプリ本体UI</td><td>アコーディオン群（管理項目〜入出力）。位置図エリアにGPS修正バナー</td></tr>
-            <tr><td><code>spec.html</code></td><td>開発仕様書</td><td>本ファイル（アプリ内「開発方針」タブに埋め込み）</td></tr>
-            <tr><td><code>install_guide.html</code></td><td>インストール手順</td><td>iPhone/Android向けPWA追加手順・統合管理版DLリンク</td></tr>
-            <tr><td><code>jzip_spec.html</code></td><td>JZIP連携仕様書</td><td>AppAとAppBの連携仕様を定義する共通ドキュメント。build.jsには組み込まない。両スレッドに毎回渡して同期させる。</td></tr>
-            <tr><td><code>1_script_map.js</code></td><td>地図管理</td><td>Leaflet初期化・描画・モード切替・地図画像化・GPS修正モード。maxZoom:25（オーバーズーム対応）</td></tr>
-            <tr><td><code>1_script_sketch.js</code></td><td>白紙メモ</td><td>Canvas描画（ペン/直線/文字/消しゴム/Undo）</td></tr>
-            <tr><td><code>2_script_photo.js</code></td><td>写真管理・センサー</td><td>gpsManager + azimuthManager + photoApp（GPS修正フロー含む）</td></tr>
-            <tr><td><code>3_script_main.js</code></td><td>制御・入出力</td><td>UIヘルパー・オートセーブ・JZIP入出力（EXIF書き込み含む）・プリセット・更新確認・mapCacheManager</td></tr>
-            <tr><td><code>sw.js</code></td><td>Service Worker</td><td>地図タイル・アプリ本体のキャッシュ管理（自動キャッシュ方式）</td></tr>
-            <tr><td><code>manifest.json</code></td><td>PWAマニフェスト</td><td>start_url/scope=/shodo-chosa/。スタンドアロン起動・アイコン定義</td></tr>
-            <tr><td><code>piexif.js</code></td><td>EXIFライブラリ</td><td>piexifjs v1.0.6。src/直下に配置しビルド時にインライン埋め込み</td></tr>
-            <tr><td><code>rogo-AAA.txt</code></td><td>ロゴデータ</td><td>Base64エンコード画像（ビルド時にインライン埋め込み）</td></tr>
-        </table>
-        </div>
-    </section>
-
-    <section>
-        <h3>4. 実装仕様とアーキテクチャ</h3>
-
-        <h4>4.1 データ構造 (JZIP)</h4>
-        <p>詳細は <code>jzip_spec.html</code> を参照。photoListの各要素：<code>{ fileName, memo, tag, azimuth, lat, lng, gpsAccuracy, gpsFixed }</code></p>
-
-        <h4>4.2 写真機能</h4>
-        <ul>
-            <li><strong>写真エリアのUI配置順（確定）:</strong> ナビゲーション → プレビュー → タグ・削除 → 📷撮影・📁ファイル選択 → 写真の備考 → センサーエリア（撮影方向・位置情報）</li>
-            <li><strong>カメラinput分離（iPhone対応）:</strong> photo-camera-input（handleCameraFile・GPS自動記録）/ photo-file-input（handleFileSelect・EXIF読み込み）</li>
-            <li><strong>撮影ボタン:</strong> 「誤差○m」を直接表示。未取得時は点滅。GPS起動はDOMContentLoadedで実施。</li>
-            <li><strong>位置情報4状態:</strong> ○m（精度あり）/ 修正済み（地図タップ後・青）/ 不明（EXIFから）/ 未取得</li>
-            <li><strong>GPS修正フロー:</strong> 修正ボタン→写真タブ閉じ→位置図タブ開く（現在ズーム+2）→地図タップ→写真タブに戻る</li>
-            <li><strong>JZIPエクスポート時のEXIF書き込み:</strong> piexifjsでGPS座標・方位をJPEGに書き込む。エラー時フォールバック。</li>
-            <li><strong>リサイズ横幅指定:</strong> 入出力タグで800/1200/1600/2000px・なしを選択。デフォルト1200px。</li>
-            <li><strong>撮影ボタンの許可待ちロック解除ウォッチドッグ（Phase 5.77強化）:</strong> GPS（gpsManager）・方位センサー（azimuthManager）の許可ダイアログ応答前は撮影ボタンをdisabledにして、iOSでネイティブダイアログとカメラ起動が競合し以後カメラが起動しなくなる不具合を防いでいる（既存の仕組み）。これに加え、(1) ボタンのonclickを直接input.click()にせずphotoApp.triggerCameraInput()を経由させ、実行時にも許可待ち状態を再チェックする二重の安全策、(2) gpsManager.start()・azimuthManager.startListening()の双方に独自のウォッチドッグタイマー（12秒）を追加し、iOS側の許可応答（成功・拒否どちらのコールバック／Promise）が何らかの理由で永遠に返ってこなかった場合でも、一定時間後に強制的にpermissionPendingを解除してボタンを復帰させるようにした。watchPositionのtimeoutオプションは許可待ちも含めてカウントされる仕様のはずだが、iOS実機でこれが機能せずコールバックが呼ばれないまま固まるケースが確認されたための対策。</li>
-            <li><strong>撮影時にカメラロールへも保存（Phase 5.77追加、5.79〜5.81で調査・仕様変更）:</strong> 写真設定に「撮影時にカメラロールにも保存する」チェックボックス（既定ON、初期値保存/読み込み対象）を追加。<strong>注意:</strong> iOS Safariの仕様上、input captureで撮影した写真はWebページに渡されるだけでカメラロールへの自動保存はされず、Webページが無断で写真アプリに書き込むAPIも存在しないため、完全な自動・無音保存は不可能。唯一の方法はWeb Share API（navigator.share）でOS標準の共有シートを開き、ユーザーが「イメージを保存」をタップすること。<br>
-                <strong>Phase 5.79の修正:</strong> handleCameraFile内でresizeImage()のawaitを待ってから共有を呼んでいたためnavigator.share()に必要なユーザー操作起点（トランジェントアクティベーション）が失効していた不具合を修正（呼び出し順序をリサイズより前に変更）。<br>
-                <strong>Phase 5.80〜5.81で判明した根本問題:</strong> 呼び出し順序を直しても、実機ではカメラ撮影後のinput[change]イベントに十分なユーザー操作起点が伴わない端末があり、navigator.share()が必ず失敗することを確認した（診断トーストで`NotAllowedError`等を確認）。changeイベント経由の自動保存はブラウザの実装によって信頼できないため、<strong>写真ツールバーに「📥 保存」ボタン（managerApp.saveCurrentPhotoToCameraRoll）を新設し、表示中の写真をユーザーの直接タップから共有する方式に変更</strong>。ボタンの直接クリックは常に新鮮な操作起点を伴うため確実に動作する。撮影直後の自動保存（_saveToCameraRoll(file, {auto:true})）は既定ONのままベストエフォートで試行し続けるが、失敗時は「📥保存」ボタンの利用を促すトーストを表示する。</li>
-        </ul>
-
-        <h4>4.3 地図機能</h4>
-        <ul>
-            <li>ポリライン描画の完了はボタン専用（マーカータップ無効）。</li>
-            <li>モード：位置図（メイン・赤）/ 地図メモ（サブ・青）/ 白紙メモ（Canvas）/ GPS修正モード</li>
-            <li><strong>maxZoom:25（オーバーズーム対応）:</strong> maxNativeZoom:18（地理院）/19（ESRI）でタイルを拡大表示。</li>
-            <li><strong>地図初期化タイミング:</strong> storageManager.load()では初期化せず、アコーディオンを開いたときにinvalidateSize()→ペンディングデータ復元の順で実行。DOMサイズ0での初期化を防ぐ。</li>
-            <li><strong>地図の高さを残り領域いっぱいに動的計算（Phase 5.88追加、5.91で.map-controls分の差し引きを廃止）:</strong> `#map`はHTML上`height:55vh`が初期値だが、mapApp.fitMapHeight()が地図要素の現在位置から#main-content（画面の残り表示領域）の下端までを実測し、その分を地図の実高さとして動的に割り当てる。縦横比の異なる端末・画面回転・ウィンドウリサイズでも、地図の下に空白ができないようにするための対策。switchMapMode()（位置図タブを開いた時）とwindow resizeイベントの両方で再計算する。Phase 5.91で「地図を写真に保存」「全て消去」ボタンをフローティング化し地図の下に専有スペースを取る要素が無くなったため、以前あった操作ボタン行の高さの差し引き計算は削除した。</li>
-            <li><strong>フローティング操作ボタン（Phase 5.90〜5.92）:</strong> 「現在地」「地図を写真に保存」（右下、ベースマップ選択と同じ44pxのアイコンボタン、.map-icon-btnで統一。現在地が上、保存が下の縦並び）、「テキスト表示→注釈」（左下、チェックボックス）を、いずれも地図に重ねて表示するフローティングUIとして配置している。「全て消去」ボタンはPhase 5.92で削除した。地図の下に専有スペースを取る固定要素は無くなり、地図表示領域を最大限確保できるようになった。</li>
-            <li><strong>地図キャッシュ:</strong> 表示したタイルを自動でCache Storageに蓄積（Stale-While-Revalidate方式）。意図的な一括先読み機能はUI非搭載。</li>
-            <li><strong>写真の位置図表示（Phase 5.75追加）:</strong> 位置情報を持つ写真をphotos[]から抽出し、mapApp.photoLayerGroupにカメラアイコン（📷）マーカーとして表示。位置図タブを開くたび（アコーディオン展開・GPS修正フロー開始時）にmapApp.renderPhotoMarkers()で再描画する。</li>
-            <li><strong>撮影方向の矢印表示:</strong> azimuth記録済みの写真は、カメラアイコンから赤い矢印を伸ばして撮影方向を示す（0°=真北、時計回りに回転）。azimuth未記録の写真はアイコンのみ。選択中の写真は青リングで強調。マーカータップで写真・タグ・方位・備考をポップアップ表示し、対象写真を選択状態にする。</li>
-            <li><strong>「現在地」ボタンの位置表示（Phase 5.86追加）:</strong> mapApp.setCurrentLocation()はmap.locate({setView:true, maxZoom:16})で地図をパン・ズームするだけで、自分の位置を示すマーカーが表示されていなかった。init()内でmap.on('locationfound', ...)を配線し、取得した座標に青丸マーカー（L.circleMarker）＋精度円（L.circle、半径=accuracy/2）を表示するよう変更。約5秒後にsetTimeoutで自動的に消える。連打された場合は前回のマーカー・円・タイマーを解除してから出し直すため、表示が重複しない。取得失敗時（locationerror）はトースト通知を出す。</li>
-        </ul>
-
-        <h4>4.4 キャッシュ管理</h4>
-        <ul>
-            <li><strong>自動キャッシュ:</strong> 地図表示時に自動でタイルをキャッシュ。ユーザー操作不要。</li>
-            <li><strong>キャッシュ開放:</strong> 入出力データ操作タブの「地図キャッシュを開放する」ボタンでCache Storageを削除。LocalStorage（入力データ・プリセット）には影響しない。</li>
-            <li><strong>iOSの注意:</strong> ストレージ不足時にiOSがPWAのキャッシュを自動削除する場合がある。その際は再度地図を表示してキャッシュを再蓄積する。</li>
-        </ul>
-
-        <h4>4.5 オートセーブ仕様</h4>
-        <ul>
-            <li>保存先：LocalStorage（キー: survey_app_autosave）</li>
-            <li>写真はdataUrlを保存しない。メタ情報（tag・memo・azimuth・lat・lng・gpsAccuracy・gpsFixed）のみ保存。</li>
-            <li>復元時はメタ情報のみ復元。実画像はJZIP読み込みで復元する運用。</li>
-            <li><strong>写真キャッシュ(IndexedDB/photoStorage)の信頼性強化（Phase 5.82）:</strong> 実画像本体はIndexedDB（photoStorage、id=配列インデックスで管理）にキャッシュしている。以前のsyncAll()は「clearAll()で全消去→1件ずつsave()で書き直し」という別々のトランザクションで実装しており、この間にアプリが強制終了・OSによるバックグラウンド一時停止・電源断等で中断されると、消去後・書き直し未完了のまま写真データが失われるリスクがあった。修正として、clear()と全put()を同一のIndexedDBトランザクションにまとめ、オールオアナッシング（中断時は自動ロールバックされ、消去前の状態がそのまま保持される）にした。また、撮影の度にrunSort()内部と呼び出し元(handleCameraFile/handleFileSelect)の両方でsyncAll()が二重に走っていたのも、runSort()側に一本化して削減した（runSortをasync化し、呼び出し元はawaitするだけに変更）。</li>
-            <li><strong>「新規調査開始」でIndexedDBが消されない不具合修正（Phase 5.82、更新管理UIは5.83で「更新」タブへ移動）:</strong> ツールバーの「新規調査開始」（uiHelper.confirmReset→appControl.executeClear）は画面上の写真一覧（photoApp.photos）を空にするだけで、IndexedDB側の写真データは削除されておらず、前回調査の写真キャッシュが消えずに残り続けていた。appControl.clearAll()側は元々photoStorage.clearAll()を呼んでいたが、こちらのexecuteClear()には無かったための漏れ。executeClear()にもphotoStorage.clearAll()の呼び出しを追加した。</li>
-        </ul>
-
-        <h4>4.6 PWA・デプロイ</h4>
-        <ul>
-            <li>GitHub Pages: <code>https://kspa-joho.github.io/shodo-chosa/</code></li>
-            <li>manifest.jsonのstart_url/scope: <code>/shodo-chosa/</code></li>
-            <li>Service Workerによる完全オフライン起動。更新確認ボタンでPhase番号比較・手動更新。</li>
-            <li><strong>Google Apps Script経由配信時の注意（Phase 5.76追加）:</strong> GASのdoGetはHTMLをGoogle製ラッパーページ内の&lt;iframe&gt;として配信するため、iOS SafariがトップページのみのViewportメタタグしか参照しない仕様と衝突し、「拡大縮小が固定されない」現象が発生する。方位センサー・GPSの権限もiframe内では不安定になりうる。対策として、&lt;head&gt;先頭で<code>window.top !== window.self</code>を検知した場合に<code>window.top.location</code>へ自ページURLを代入し、iframeから脱出（トップレベル遷移）する処理を追加した。file://や直接ホスティングされたURLで開く場合は何もしない（無害）。</li>
-        </ul>
-    </section>
-
-    <section>
-        <h3>5. 重要な決定事項</h3>
-        <ul>
-            <li><strong>カメラinput分離方針:</strong> iOSのmultiple不安定問題を根本解決。今後変更しない。</li>
-            <li><strong>位置情報の削除ボタン廃止:</strong> 誤操作防止のため削除ボタンは設けない。修正は地図タップ上書きのみ。</li>
-            <li><strong>EXIFはエクスポート時に書き込む:</strong> リサイズ時にEXIFが消えるため、JZIP生成時にpiexifjsで書き直す。</li>
-            <li><strong>地図タップ修正後はgpsFixed=true:</strong> gpsAccuracyはnull。表示は「修正済み（座標）」。</li>
-            <li><strong>地図キャッシュは自動蓄積方式:</strong> 意図的な一括先読みUIは搭載しない。キャッシュ開放のみUIで提供。</li>
-            <li><strong>地図初期化はアコーディオンopen時:</strong> DOMサイズ0での初期化バグを防ぐため確定。今後変更しない。</li>
-            <li><strong>iPhone動作確認:</strong> 部会メンバーへのお披露目時に実機確認を行う。</li>
-        </ul>
-    </section>
-
-    <section>
-        <h3>6. 次に行うタスクの積み残し</h3>
-        <ul>
-            <li>iPhone実機での方位センサー・カメラ・GPS動作確認（部会お披露目時）</li>
-            <li>App B帳票への方位・GPS出力対応（要検討・AppBスレッドで実施）</li>
-            <li>試験運用後の現場フィードバック反映</li>
-            <li>App Bとのフィールド定義の整合確認（jzip_spec.htmlで管理）</li>
-        </ul>
-    </section>
-
-    <section>
-        <h3>7. アプリ更新管理について</h3>
-        <p>アプリのバージョン確認・更新は「更新」タブ（ヘッダーの3つ目のタブ）に移動した（Phase 5.83）。以前はこの「開発方針」タブの末尾にあったが、独立したタブに切り出し、更新確認だけを目的に開けるようにした。「更新履歴」も同じ理由でPhase 5.99から「更新」タブへ移動し、バージョンごとに開閉できるアコーディオン形式にした（デフォルトは閉じた状態）。</p>
-    </section>
-</div>
-                </div>
             </section>
 
             <section id="content-update" class="tab-content">
                 <div style="padding: 20px;">
                     <div style="padding: 15px; background: #e8f6f3; border: 1px solid #a2d9ce; border-radius: 4px;">
                         <p style="margin:0 0 10px 0; font-weight:bold; color: #16a085;">アプリ更新管理</p>
-                        <p style="margin:0 0 5px 0; font-size:0.9rem;">現在のバージョン: <strong id="current-version-display">Phase 6.00</strong></p>
+                        <p style="margin:0 0 5px 0; font-size:0.9rem;">現在のバージョン: <strong id="current-version-display">Phase 6.01</strong></p>
                         <div style="display:flex; align-items:center; gap:10px;">
                             <button id="update-app-btn" type="button" class="btn-main" style="width:auto; padding:8px 16px;" onclick="appControl.checkForUpdate()">更新を確認する</button>
                             <span id="update-status" style="font-size:0.9rem; color:#555;"></span>
@@ -733,6 +542,7 @@ body.app-touch .sketch-icon-btn-trash { bottom: 29px; }
 
                     <div style="margin-top: 20px;">
                         <p style="font-weight:bold; color:#2c3e50; margin-bottom:10px;">更新履歴</p>
+                        <details class="history-item"><summary>Phase 6.01</summary><p>「開発方針」タブ（開発仕様書の全文）をindex.htmlから完全に削除し、プロジェクト直下のREADME.mdへ移動した。アプリ利用者には不要な開発者向け情報のため、アプリ本体には埋め込まずリポジトリのドキュメントとして独立管理する方針に変更。これに伴い「ヘルプ」タブは「アプリ化の手順」のみのシンプルな単一画面になり、サブタブ切替UI（.help-sub-tabs等）と対応CSS・JSも不要になったため削除した。</p></details>
                         <details class="history-item"><summary>Phase 6.00</summary><p>Phase 5.99でテーブルのmin-widthを撤廃したにもかかわらず、iPhone実機では依然「開発方針」タブ全体に横スクロールができてしまう不具合が残っていた。原因はテーブルではなく、`--app-max-width: clamp(480px, 100vw, 1400px)`が下限480pxを指定していたこと。100vwが480px未満（iPhoneはほぼ全機種が該当）の場合でもclampの下限が効いて#app-containerが常に480px幅に固定され、画面全体が横スクロール可能になっていた。下限を撤廃し`min(100vw, 1400px)`に変更し、実際のビューポート幅に収まるようにした。</p></details>
                         <details class="history-item"><summary>Phase 5.99</summary><p>「開発方針」タブの表に`min-width:480px`を指定していたため、スマホ幅では常にテーブルが横スクロール状態になり「右側に余白があってスクロールしづらい」原因になっていた。min-widthを撤廃し`table-layout:fixed`と`word-break:break-word`でビューポート幅に収まるよう修正。また「更新履歴」を「開発方針」タブの表形式から、この「更新」タブの更新確認欄の下へ移動し、バージョンごとに開閉できるアコーディオン形式（デフォルト閉）にした。加えて、iPhoneで更新ボタンを押しても1回目は反応せず2回目でようやく更新される不具合を修正。原因はService Workerのstale-while-revalidateキャッシュが更新確認リクエスト（index.html?t=タイムスタンプ）にも古いキャッシュを即返してしまうことだったため、更新確認だけはキャッシュを一切使わず常にネットワークへ直接フェッチするようsw.jsを変更した。</p></details>
                         <details class="history-item"><summary>Phase 5.98</summary><p>sketchApp.saveToPhoto()（白紙メモを写真に保存）が、写真データに`lat`/`lng`/`gpsAccuracy`/`gpsFixed`/`azimuth`フィールドを一切含めておらず、位置図タブに位置情報付きマーカーとして表示されなかった。photoApp.handleCameraFile()と同じくgpsManager.getCurrentForPhoto()から現在地を取得して埋め込むよう修正（GPS未取得時はnullのまま、他の写真と同じ挙動）。</p></details>
@@ -5644,14 +5454,6 @@ document.addEventListener('DOMContentLoaded', () => {
         document.querySelectorAll('.tab-content').forEach(c => c.classList.toggle('active', c.id === t.dataset.target));
         const sectionTabs = document.getElementById('section-tabs');
         if (sectionTabs) sectionTabs.classList.toggle('active', t.dataset.target === 'content-app');
-    }));
-    // 「ヘルプ」タブ内のサブタブ（アプリ化の手順／開発方針）切替。
-    // 上の.tab-btn/.tab-contentとは別のクラス名にして、トップレベルのタブ切替と
-    // 干渉しないようにしている。
-    document.querySelectorAll('.help-tab-btn').forEach(t => t.addEventListener('click', () => {
-        document.querySelectorAll('.help-tab-btn').forEach(b => b.classList.remove('active'));
-        t.classList.add('active');
-        document.querySelectorAll('.help-tab-content').forEach(c => c.classList.toggle('active', c.id === t.dataset.helpTarget));
     }));
     document.querySelectorAll('.accordion-header').forEach(h => h.addEventListener('click', () => {
         uiHelper.activateSection(h.dataset.group);
