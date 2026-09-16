@@ -20,7 +20,7 @@
             window.top.location = window.self.location.href;
         }
     </script>
-    <title>現場踏査写真管理アプリ(現場調査用) (Phase 6.08)</title>
+    <title>現場踏査写真管理アプリ(現場調査用) (Phase 6.09)</title>
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
     <link rel="apple-touch-icon" href="icon-192.png">
@@ -543,7 +543,7 @@ body.app-touch .sketch-icon-btn-trash { bottom: 29px; }
                 <div style="padding: 20px;">
                     <div style="padding: 15px; background: #e8f6f3; border: 1px solid #a2d9ce; border-radius: 4px;">
                         <p style="margin:0 0 10px 0; font-weight:bold; color: #16a085;">アプリ更新管理</p>
-                        <p style="margin:0 0 5px 0; font-size:0.9rem;">現在のバージョン: <strong id="current-version-display">Phase 6.08</strong></p>
+                        <p style="margin:0 0 5px 0; font-size:0.9rem;">現在のバージョン: <strong id="current-version-display">Phase 6.09</strong></p>
                         <div style="display:flex; align-items:center; gap:10px;">
                             <button id="update-app-btn" type="button" class="btn-main" style="width:auto; padding:8px 16px;" onclick="appControl.checkForUpdate()">更新を確認する</button>
                             <span id="update-status" style="font-size:0.9rem; color:#555;"></span>
@@ -556,6 +556,7 @@ body.app-touch .sketch-icon-btn-trash { bottom: 29px; }
 
                     <div style="margin-top: 20px;">
                         <p style="font-weight:bold; color:#2c3e50; margin-bottom:10px;">更新履歴</p>
+                        <details class="history-item"><summary>Phase 6.09</summary><p>「撮影ボタンを押すと、押下エフェクトは出て一見反応しているのに、方位センサーの許可（動作と方向の使用確認）ダイアログが出て、以後撮影ボタンが反応しなくなる」不具合の真因を特定・修正。原因はtriggerCameraInput()内のinput.click()（#photo-camera-input、非表示のfile input）自体がdocumentまでバブリングするclickイベントを発生させ、そのe.targetが#photo-camera-input（#photo-camera-btnではない）だったため、armAzimuthFirstClickの「撮影ボタンのクリックは除外する」チェックをすり抜けていたこと。結果、撮影ボタンを押してカメラが起動するまさにその瞬間に方位センサーの許可ダイアログも呼ばれてしまい、iOSのネイティブダイアログ同士が競合して以後カメラが起動しなくなっていた。input.click()等で発生する合成クリックはe.isTrustedがfalseになる性質を利用し、armAzimuthFirstClickの先頭でisTrustedでないクリックは無視してリスナーを維持し続けるよう修正した（本物のユーザー操作によるクリックのみを起点にする）。</p></details>
                         <details class="history-item"><summary>Phase 6.08</summary><p>Phase 6.05の許可待ちガード（#permission-pending-guard）が実際には機能しておらず、撮影ボタンが押せなくなる不具合が直っていなかった件を修正。原因はガードのクリック/タッチハンドラがpreventDefault()のみでstopPropagation()を呼んでいなかったこと。写真タブがデフォルト表示のためアプリ起動直後は方位センサーがまだ起動しておらず、「ページ内で最初に行われたクリックを起点に方位センサーを起動する」armAzimuthFirstClick（document直下のclickリスナー）が別途仕込まれているが、ガードが吸収したはずのタップもdocumentまでバブリングしてこのリスナーに届いてしまい、GPSの許可待ち中（＝ガード表示中）にもかかわらず方位センサーの許可ダイアログが新たに呼ばれ、結果としてGPSダイアログと方位ダイアログが同時に走る＝本来防ぎたかった競合をガード自身が引き起こしていた。ガード側にstopPropagation()・stopImmediatePropagation()を追加してバブリングを止め、さらに二重の安全策としてarmAzimuthFirstClick側でもgpsManager.permissionPendingを確認し、pending中のクリックでは起動せず次のクリックを待つよう修正した。</p></details>
                         <details class="history-item"><summary>Phase 6.07</summary><p>「更新」タブに「🗑 キャッシュを削除して更新」ボタンを追加した。通常の「更新を確認する」で直らない場合の非常手段として、Service Workerのunregisterに加えCache Storageを全削除（SHELL_CACHE・TILE_CACHEとも）した上で、キャッシュバスター付きURL（index.html?t=タイムスタンプ）へ直接遷移する。オフライン用に保存した地図タイルも消えるため確認ダイアログで明示している。LocalStorage・IndexedDB（入力中データ・写真）には触れないため、入力中のデータは消えない。</p></details>
                         <details class="history-item"><summary>Phase 6.06</summary><p>「更新」ボタンで最新版にした直後は正しく表示されるのに、アプリをタスクキルして開き直すと古いバージョンに戻ってしまう不具合を修正。原因は2つ：(1) sw.jsのstale-while-revalidateが裏で最新版を取りに行くfetch()にキャッシュ制御を指定していなかったため、GitHub Pages等が付与するCache-Controlによりブラウザ自身のHTTPキャッシュから古い内容を読んでしまい、Service Worker自身のCache Storageが更新されないことがあった（{cache:'reload'}を追加してブラウザのHTTPキャッシュを必ず迂回するよう修正）。(2) 「更新する」を選んだ際、Service Workerをunregisterしても既存のCache Storage自体は消えずに残るため、再登録される新しいService Workerが最初の1回だけ古いキャッシュを返してしまっていた。更新確認で取得済みの最新HTMLを、遷移前にCache Storage（app-shell-v1）へ直接書き込むことで、次回起動時点から確実に最新版が返るようにした。</p></details>
@@ -5704,8 +5705,17 @@ document.addEventListener('DOMContentLoaded', () => {
     // ガード側でstopPropagation()するのが本筋の対策だが、それに依存しきらない二重の安全策として
     // ここでもgpsManager.permissionPendingを確認し、pending中のクリックでは起動せず
     // リスナーを外さずに次のクリックを待つ。
+    // 【重要・Phase 6.09で特定】#photo-camera-btnのクリックを除外していても、
+    // triggerCameraInput()内のinput.click()（#photo-camera-input）自体がbubbleする
+    // click イベントをdocumentまで発生させており、そのe.targetは#photo-camera-inputで
+    // #photo-camera-btnの除外チェックに引っかからなかった。このため撮影ボタンを押した
+    // まさにその瞬間（カメラが起動する瞬間）にこのリスナーが反応し、方位センサーの許可
+    // ダイアログが同時に呼ばれてしまっていた（＝「押下エフェクトは出るのに以後反応しなく
+    // なる」不具合の直接の原因）。input.click()等で発生する合成クリックはe.isTrustedが
+    // falseになるため、isTrustedでないクリックは無視してリスナーを維持し続けるようにする。
     const armAzimuthFirstClick = () => {
         const handler = (e) => {
+            if (!e.isTrusted) return;
             if (e.target.closest && e.target.closest('#photo-camera-btn')) return;
             if (window.gpsManager && gpsManager.permissionPending) return;
             document.removeEventListener('click', handler);
