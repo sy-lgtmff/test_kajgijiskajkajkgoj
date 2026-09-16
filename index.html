@@ -20,7 +20,7 @@
             window.top.location = window.self.location.href;
         }
     </script>
-    <title>現場踏査写真管理アプリ(現場調査用) (Phase 6.02)</title>
+    <title>現場踏査写真管理アプリ(現場調査用) (Phase 6.03)</title>
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
     <link rel="apple-touch-icon" href="icon-192.png">
@@ -533,7 +533,7 @@ body.app-touch .sketch-icon-btn-trash { bottom: 29px; }
                 <div style="padding: 20px;">
                     <div style="padding: 15px; background: #e8f6f3; border: 1px solid #a2d9ce; border-radius: 4px;">
                         <p style="margin:0 0 10px 0; font-weight:bold; color: #16a085;">アプリ更新管理</p>
-                        <p style="margin:0 0 5px 0; font-size:0.9rem;">現在のバージョン: <strong id="current-version-display">Phase 6.02</strong></p>
+                        <p style="margin:0 0 5px 0; font-size:0.9rem;">現在のバージョン: <strong id="current-version-display">Phase 6.03</strong></p>
                         <div style="display:flex; align-items:center; gap:10px;">
                             <button id="update-app-btn" type="button" class="btn-main" style="width:auto; padding:8px 16px;" onclick="appControl.checkForUpdate()">更新を確認する</button>
                             <span id="update-status" style="font-size:0.9rem; color:#555;"></span>
@@ -542,6 +542,7 @@ body.app-touch .sketch-icon-btn-trash { bottom: 29px; }
 
                     <div style="margin-top: 20px;">
                         <p style="font-weight:bold; color:#2c3e50; margin-bottom:10px;">更新履歴</p>
+                        <details class="history-item"><summary>Phase 6.03</summary><p>「現在地」ボタンを押すたびにズームレベルが強制的に変わってしまう不具合を修正。原因はmap.locate()に渡していたsetView:trueが内部で精度円の範囲に収まるようfitBounds相当の処理を行い、ユーザーが見ていたズームを勝手に変更していたこと。setViewとmaxZoomの指定をやめ、locationfound側でmap.setView(現在地, 現在のズーム)を呼ぶことで、ズームは維持したまま現在地へパンするだけにした。</p></details>
                         <details class="history-item"><summary>Phase 6.02</summary><p>位置図タブの「現在地」ボタンを押した際、現在地マーカーに向いている方向（方位）も矢印で表示するようにした。mapApp.setCurrentLocation()内でazimuthManager.startListening()も合わせて呼ぶ（iOSは方位センサーの許可ダイアログをユーザー操作起点でしか出せないため、現在地ボタンのクリックを起点にする）。現在地マーカーは従来の円形（circleMarker）からdivIconのSVGマーカーに変更し、写真マーカーと同様に方位分だけ回転した矢印を重ねて描画する。deviceorientationイベントを直接フックする仕組みが無いため、マーカー表示中（5秒間）は300ms間隔のポーリングでazimuthManager.currentAzimuthを読み直し、矢印の向きを追従させる。方位が未取得の場合は従来通り矢印なしの丸のみ表示する。</p></details>
                         <details class="history-item"><summary>Phase 6.01</summary><p>「開発方針」タブ（開発仕様書の全文）をindex.htmlから完全に削除し、プロジェクト直下のREADME.mdへ移動した。アプリ利用者には不要な開発者向け情報のため、アプリ本体には埋め込まずリポジトリのドキュメントとして独立管理する方針に変更。これに伴い「ヘルプ」タブは「アプリ化の手順」のみのシンプルな単一画面になり、サブタブ切替UI（.help-sub-tabs等）と対応CSS・JSも不要になったため削除した。</p></details>
                         <details class="history-item"><summary>Phase 6.00</summary><p>Phase 5.99でテーブルのmin-widthを撤廃したにもかかわらず、iPhone実機では依然「開発方針」タブ全体に横スクロールができてしまう不具合が残っていた。原因はテーブルではなく、`--app-max-width: clamp(480px, 100vw, 1400px)`が下限480pxを指定していたこと。100vwが480px未満（iPhoneはほぼ全機種が該当）の場合でもclampの下限が効いて#app-containerが常に480px幅に固定され、画面全体が横スクロール可能になっていた。下限を撤廃し`min(100vw, 1400px)`に変更し、実際のビューポート幅に収まるようにした。</p></details>
@@ -3227,6 +3228,9 @@ window.mapApp = {
             if (this._currentLocMarker) { this.map.removeLayer(this._currentLocMarker); this._currentLocMarker = null; }
             if (this._currentLocCircle) { this.map.removeLayer(this._currentLocCircle); this._currentLocCircle = null; }
 
+            // ズームは変更せず、現在のズームレベルのまま現在地へパンするだけにする。
+            this.map.setView(e.latlng, this.map.getZoom());
+
             this._currentLocCircle = L.circle(e.latlng, {
                 radius: e.accuracy / 2, color: '#3498db', weight: 1, fillColor: '#3498db', fillOpacity: 0.15
             }).addTo(this.map);
@@ -3605,10 +3609,14 @@ window.mapApp = {
     // ユーザー操作起点でしか許可ダイアログを出せない。「現在地」ボタンのクリックは
     // ユーザー操作起点なので、ここでazimuthManager.startListening()も合わせて呼び、
     // 現在地マーカーに向いている方向の矢印を表示できるようにする。
+    // 【重要】locate()にsetView:trueを渡すと、内部でfitBounds（精度円の範囲に収まる
+    // ズームへ強制変更）が働き、ユーザーが見ていたズームレベルが勝手に変わってしまう
+    // （Phase 6.03で報告・修正）。setViewは使わず、locationfound側で現在のズームを
+    // 維持したままpanするようにした。
     setCurrentLocation() {
         if (!this.map) return;
         if (window.azimuthManager) azimuthManager.startListening();
-        this.map.locate({setView: true, maxZoom: 16});
+        this.map.locate();
     },
 
     // 【重要】#mapはheight:55vhの固定高さで作られているが、実際に使える高さ
