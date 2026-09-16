@@ -20,7 +20,7 @@
             window.top.location = window.self.location.href;
         }
     </script>
-    <title>現場踏査写真管理アプリ(現場調査用) (Phase 5.96)</title>
+    <title>現場踏査写真管理アプリ(現場調査用) (Phase 5.97)</title>
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
     <link rel="apple-touch-icon" href="icon-192.png">
@@ -35,7 +35,14 @@
     --section-tabs-top: 0px;
 }
 body { margin: 0; padding: 0; background-color: #666; font-family: sans-serif; display: flex; justify-content: center; }
-#app-container { width: 100%; max-width: var(--app-max-width); min-height: 100vh; background-color: var(--bg-color); box-shadow: 2px 0 10px rgba(0,0,0,0.3); display: flex; flex-direction: column; position: relative; }
+/* 【重要】以前はmin-height:100vh（上限なし）だったため、#main-content内の
+   要素（地図・白紙メモcanvas）の高さを「残り領域いっぱいに」動的計算する処理が、
+   計算結果がわずかでも大きすぎるとページ全体を押し広げ、次の計算がその
+   膨らんだ状態を基準にしてしまい、位置図⇄白紙メモを往復するたびに際限なく
+   大きくなり続ける不具合（ボタンがどんどん下にずれて消える）の原因になっていた。
+   height:100vhに固定することで#main-contentのoverflow-y:autoが正しく機能し、
+   ページ自体は伸び縮みしなくなる。 */
+#app-container { width: 100%; max-width: var(--app-max-width); height: 100vh; background-color: var(--bg-color); box-shadow: 2px 0 10px rgba(0,0,0,0.3); display: flex; flex-direction: column; position: relative; }
 
 /* タブ制御 */
 .tab-content { display: none !important; }
@@ -553,8 +560,8 @@ body.app-touch .sketch-icon-btn-trash { bottom: 29px; }
                 <div id="help-spec" class="help-tab-content">
                 <div class="spec-container">
     <header class="spec-header">
-        <h2>被災状況調査システム 開発仕様書 (Phase 5.96)</h2>
-        <p><strong>Last Updated:</strong> Phase 5.96 (「管理項目」「位置図」「写真」「データ入出力」タブの境目が分かりにくかったため、タブ間に薄い区切り線を追加)</p>
+        <h2>被災状況調査システム 開発仕様書 (Phase 5.97)</h2>
+        <p><strong>Last Updated:</strong> Phase 5.97 (位置図⇄白紙メモを往復するたびにcanvasが際限なく大きくなり保存/全消去ボタンが下にずれ続ける不具合を修正。#app-containerをmin-height:100vhからheight:100vhに変更)</p>
         <span class="spec-status-badge">App A (Stable)</span>
     </header>
 
@@ -696,6 +703,7 @@ body.app-touch .sketch-icon-btn-trash { bottom: 29px; }
         <div class="spec-table-wrap">
         <table>
             <tr><th>Phase</th><th>内容</th></tr>
+            <tr><td>5.97</td><td>位置図⇄白紙メモのタブを往復するたびに白紙メモの「保存」「全消去」ボタンがどんどん下にずれて見えなくなる不具合を修正。原因は#app-containerが`min-height:100vh`（上限なし）だったこと。sketchApp.resizeAndClear()の高さ計算が#main-contentの実測下端を基準にしていたため、計算結果がわずかでも大きすぎるとページ全体が押し広げられ、次の計算がその膨らんだ状態を基準にしてしまい、雪だるま式に増大していた（往復5回でcanvas高さ491px→506px、ボタンが29px下にずれることを確認）。`height:100vh`に固定し、#main-contentのoverflow-y:autoが本来の設計どおり内部スクロールとして機能するようにしたところ、8回往復しても数値が完全に安定することを確認した。</td></tr>
             <tr><td>5.96</td><td>「管理項目」「位置図」「写真」「データ入出力」の各タブ（.accordion-header）が背景・境界とも同色（白）で、選択していないと境目が分からなかった。`.accordion-header:not(:last-child) { border-right: 1px solid #e0e0e0; }`を追加し、タブ間に薄い区切り線を入れた。</td></tr>
             <tr><td>5.95</td><td>白紙メモの「保存」「全消去」ボタンの位置を、位置図タブの「現在地」「地図を写真に保存」ボタンの実測位置（Leafletのbottomrightコントロールが計算する座標）にピクセル単位で合わせた。right:10px→12px、上段（保存）bottom:56px/64px→87px、下段（全消去）bottom:10px→29pxに調整し、実測値との誤差1px未満まで一致させた。</td></tr>
             <tr><td>5.94</td><td>「地図を写真に保存」「写真に保存」（ダウンロードアイコン）が上寄りに表示される不具合を修正。元のSVGは`transform="matrix(1,0,0,1,-15,-41.85)"`でviewBox"0 0 320 327"に合わせていたが、Y方向の平行移動量が実際のパス座標（y:20〜270）とviewBoxの高さ（327）の中心に合っておらず、内容が上寄り・下に大きな余白ができていた。transformを使わず、パスの実座標に直接フィットするviewBox"15 5 320 280"に変更し、上下左右とも均等な余白になるようにした。</td></tr>
@@ -729,7 +737,7 @@ body.app-touch .sketch-icon-btn-trash { bottom: 29px; }
                 <div style="padding: 20px;">
                     <div style="padding: 15px; background: #e8f6f3; border: 1px solid #a2d9ce; border-radius: 4px;">
                         <p style="margin:0 0 10px 0; font-weight:bold; color: #16a085;">アプリ更新管理</p>
-                        <p style="margin:0 0 5px 0; font-size:0.9rem;">現在のバージョン: <strong id="current-version-display">Phase 5.96</strong></p>
+                        <p style="margin:0 0 5px 0; font-size:0.9rem;">現在のバージョン: <strong id="current-version-display">Phase 5.97</strong></p>
                         <div style="display:flex; align-items:center; gap:10px;">
                             <button id="update-app-btn" type="button" class="btn-main" style="width:auto; padding:8px 16px;" onclick="appControl.checkForUpdate()">更新を確認する</button>
                             <span id="update-status" style="font-size:0.9rem; color:#555;"></span>
