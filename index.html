@@ -20,7 +20,7 @@
             window.top.location = window.self.location.href;
         }
     </script>
-    <title>現場踏査写真管理アプリ(現場調査用) (Ver 6.11)</title>
+    <title>現場踏査写真管理アプリ(現場調査用) (Ver 6.12)</title>
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
     <link rel="apple-touch-icon" href="icon-192.png">
@@ -543,10 +543,10 @@ body.app-touch .sketch-icon-btn-trash { bottom: 29px; }
                 <div style="padding: 20px;">
                     <div style="padding: 15px; background: #e8f6f3; border: 1px solid #a2d9ce; border-radius: 4px;">
                         <p style="margin:0 0 10px 0; font-weight:bold; color: #16a085;">アプリ更新管理</p>
-                        <p style="margin:0 0 5px 0; font-size:0.9rem;">現在のバージョン: <strong id="current-version-display">Ver 6.11</strong></p>
+                        <p style="margin:0 0 5px 0; font-size:0.9rem;">現在のバージョン: <strong id="current-version-display">Ver 6.12</strong></p>
                         <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
-                            <button id="update-app-btn" type="button" class="btn-main" style="width:auto; padding:8px 16px;" onclick="appControl.checkForUpdate()">更新</button>
-                            <button id="hard-reset-btn" type="button" style="width:auto; padding:8px 16px; background:#e67e22; color:#fff; border:none; border-radius:4px; font-weight:bold; cursor:pointer;" onclick="appControl.hardResetUpdate()">🗑 キャッシュを削除して更新</button>
+                            <button id="update-app-btn" type="button" class="btn-main" style="width:210px; padding:8px 16px; text-align:center;" onclick="appControl.checkForUpdate()">更新</button>
+                            <button id="hard-reset-btn" type="button" style="width:210px; padding:8px 16px; text-align:center; background:#e67e22; color:#fff; border:none; border-radius:4px; font-weight:bold; cursor:pointer;" onclick="appControl.hardResetUpdate()">🗑 キャッシュを削除して更新</button>
                             <span id="update-status" style="font-size:0.9rem; color:#555;"></span>
                         </div>
                         <p style="margin:6px 0 0 0; font-size:0.78rem; color:#666;">「更新」で直らない場合は「キャッシュを削除して更新」をお試しください。保存済みのオフライン地図タイルも削除され、再表示時に読み込み直しになります（入力中のデータは消えません）。</p>
@@ -554,6 +554,7 @@ body.app-touch .sketch-icon-btn-trash { bottom: 29px; }
 
                     <div style="margin-top: 20px;">
                         <p style="font-weight:bold; color:#2c3e50; margin-bottom:10px;">更新履歴</p>
+                        <details class="history-item"><summary>Ver 6.12</summary><p>「更新」ボタンと「キャッシュを削除して更新」ボタンの幅を揃えた（それぞれwidth:210pxに固定）。文字数が大きく異なるため、width:autoのままだと片方だけ極端に小さくなっていた。</p></details>
                         <details class="history-item"><summary>Ver 6.11</summary><p>「更新」タブのボタン表記・レイアウトを整理。「更新を確認する」ボタンを「更新」に短縮し、「🗑 キャッシュを削除して更新」ボタンをその隣（同じ行）に並べるようにした。</p></details>
                         <details class="history-item"><summary>Ver 6.10</summary><p>バージョン表記を「Phase X.XX」から「Ver X.XX」に変更した。タイトル・現在のバージョン表示・更新履歴の各見出しをすべて統一。更新確認（checkForUpdate）が新旧バージョンを比較するために参照している&lt;title&gt;タグの正規表現も、新しい表記に合わせて更新済み。</p></details>
                         <details class="history-item"><summary>Ver 6.09</summary><p>「撮影ボタンを押すと、押下エフェクトは出て一見反応しているのに、方位センサーの許可（動作と方向の使用確認）ダイアログが出て、以後撮影ボタンが反応しなくなる」不具合の真因を特定・修正。原因はtriggerCameraInput()内のinput.click()（#photo-camera-input、非表示のfile input）自体がdocumentまでバブリングするclickイベントを発生させ、そのe.targetが#photo-camera-input（#photo-camera-btnではない）だったため、armAzimuthFirstClickの「撮影ボタンのクリックは除外する」チェックをすり抜けていたこと。結果、撮影ボタンを押してカメラが起動するまさにその瞬間に方位センサーの許可ダイアログも呼ばれてしまい、iOSのネイティブダイアログ同士が競合して以後カメラが起動しなくなっていた。input.click()等で発生する合成クリックはe.isTrustedがfalseになる性質を利用し、armAzimuthFirstClickの先頭でisTrustedでないクリックは無視してリスナーを維持し続けるよう修正した（本物のユーザー操作によるクリックのみを起点にする）。</p></details>
