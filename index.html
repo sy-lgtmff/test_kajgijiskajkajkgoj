@@ -20,7 +20,7 @@
             window.top.location = window.self.location.href;
         }
     </script>
-    <title>現場踏査写真管理アプリ(現場調査用) (Phase 5.97)</title>
+    <title>現場踏査写真管理アプリ(現場調査用) (Phase 5.98)</title>
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
     <link rel="apple-touch-icon" href="icon-192.png">
@@ -560,8 +560,8 @@ body.app-touch .sketch-icon-btn-trash { bottom: 29px; }
                 <div id="help-spec" class="help-tab-content">
                 <div class="spec-container">
     <header class="spec-header">
-        <h2>被災状況調査システム 開発仕様書 (Phase 5.97)</h2>
-        <p><strong>Last Updated:</strong> Phase 5.97 (位置図⇄白紙メモを往復するたびにcanvasが際限なく大きくなり保存/全消去ボタンが下にずれ続ける不具合を修正。#app-containerをmin-height:100vhからheight:100vhに変更)</p>
+        <h2>被災状況調査システム 開発仕様書 (Phase 5.98)</h2>
+        <p><strong>Last Updated:</strong> Phase 5.98 (白紙メモを写真に保存する際、現在地のGPS情報が一切埋め込まれていなかった不具合を修正。カメラ撮影時と同じgpsManagerから取得するようにした)</p>
         <span class="spec-status-badge">App A (Stable)</span>
     </header>
 
@@ -703,6 +703,7 @@ body.app-touch .sketch-icon-btn-trash { bottom: 29px; }
         <div class="spec-table-wrap">
         <table>
             <tr><th>Phase</th><th>内容</th></tr>
+            <tr><td>5.98</td><td>sketchApp.saveToPhoto()（白紙メモを写真に保存）が、写真データに`lat`/`lng`/`gpsAccuracy`/`gpsFixed`/`azimuth`フィールドを一切含めておらず、位置図タブに位置情報付きマーカーとして表示されなかった。photoApp.handleCameraFile()と同じくgpsManager.getCurrentForPhoto()から現在地を取得して埋め込むよう修正（GPS未取得時はnullのまま、他の写真と同じ挙動）。</td></tr>
             <tr><td>5.97</td><td>位置図⇄白紙メモのタブを往復するたびに白紙メモの「保存」「全消去」ボタンがどんどん下にずれて見えなくなる不具合を修正。原因は#app-containerが`min-height:100vh`（上限なし）だったこと。sketchApp.resizeAndClear()の高さ計算が#main-contentの実測下端を基準にしていたため、計算結果がわずかでも大きすぎるとページ全体が押し広げられ、次の計算がその膨らんだ状態を基準にしてしまい、雪だるま式に増大していた（往復5回でcanvas高さ491px→506px、ボタンが29px下にずれることを確認）。`height:100vh`に固定し、#main-contentのoverflow-y:autoが本来の設計どおり内部スクロールとして機能するようにしたところ、8回往復しても数値が完全に安定することを確認した。</td></tr>
             <tr><td>5.96</td><td>「管理項目」「位置図」「写真」「データ入出力」の各タブ（.accordion-header）が背景・境界とも同色（白）で、選択していないと境目が分からなかった。`.accordion-header:not(:last-child) { border-right: 1px solid #e0e0e0; }`を追加し、タブ間に薄い区切り線を入れた。</td></tr>
             <tr><td>5.95</td><td>白紙メモの「保存」「全消去」ボタンの位置を、位置図タブの「現在地」「地図を写真に保存」ボタンの実測位置（Leafletのbottomrightコントロールが計算する座標）にピクセル単位で合わせた。right:10px→12px、上段（保存）bottom:56px/64px→87px、下段（全消去）bottom:10px→29pxに調整し、実測値との誤差1px未満まで一致させた。</td></tr>
@@ -737,7 +738,7 @@ body.app-touch .sketch-icon-btn-trash { bottom: 29px; }
                 <div style="padding: 20px;">
                     <div style="padding: 15px; background: #e8f6f3; border: 1px solid #a2d9ce; border-radius: 4px;">
                         <p style="margin:0 0 10px 0; font-weight:bold; color: #16a085;">アプリ更新管理</p>
-                        <p style="margin:0 0 5px 0; font-size:0.9rem;">現在のバージョン: <strong id="current-version-display">Phase 5.97</strong></p>
+                        <p style="margin:0 0 5px 0; font-size:0.9rem;">現在のバージョン: <strong id="current-version-display">Phase 5.98</strong></p>
                         <div style="display:flex; align-items:center; gap:10px;">
                             <button id="update-app-btn" type="button" class="btn-main" style="width:auto; padding:8px 16px;" onclick="appControl.checkForUpdate()">更新を確認する</button>
                             <span id="update-status" style="font-size:0.9rem; color:#555;"></span>
@@ -4055,7 +4056,17 @@ window.sketchApp = {
     saveToPhoto() {
         if (!window.photoApp) return;
         const dataUrl = this.canvas.toDataURL('image/jpeg', 0.8);
-        window.photoApp.photos.push({ dataUrl: dataUrl, memo: "手書きメモ", tag: "地図メモ" });
+        // カメラ撮影時（photoApp.handleCameraFile）と同じくgpsManagerから現在地を取得して
+        // 埋め込む。未取得時はnullのまま（他の写真と同じ挙動）。
+        const gps = window.gpsManager ? gpsManager.getCurrentForPhoto() : null;
+        window.photoApp.photos.push({
+            dataUrl: dataUrl, memo: "手書きメモ", tag: "地図メモ",
+            azimuth: null,
+            lat:         gps ? gps.lat         : null,
+            lng:         gps ? gps.lng         : null,
+            gpsAccuracy: gps ? gps.gpsAccuracy : null,
+            gpsFixed: false
+        });
         window.photoApp.currentIndex = window.photoApp.photos.length - 1;
         window.photoApp.render();
         window.photoApp.updateHeaderSummary();
