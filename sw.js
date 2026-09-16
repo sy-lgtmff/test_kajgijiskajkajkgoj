@@ -29,6 +29,18 @@ function isGoogleTile(url) {
     return url.includes('mt1.google.com/vt');
 }
 
+// アプリ側の更新確認（appControl.checkForUpdate）が投げる index.html?t=<timestamp> を判定する。
+// 【重要】ページ側はfetch()にcache:"no-store"を付けてブラウザのHTTPキャッシュを回避して
+// いたが、それだけではこのSW自身のCache Storageは回避できない。stale-while-revalidate
+// ハンドラは「キャッシュがあれば即返す」ため、SWのキャッシュがまだ古いバージョンのままだと
+// 更新確認が古い内容を見てしまい「最新です」と誤判定される（＝1回目は反応せず、裏で走る
+// revalidateでキャッシュが更新された後の2回目でようやく新バージョンを検知できてしまう
+// 不具合の原因だった）。更新確認だけはキャッシュを一切使わず常にネットワークへ直接
+// フェッチすることで、1回目から確実に最新の内容を取得できるようにする。
+function isUpdateCheck(url) {
+    try { return new URL(url).searchParams.has('t'); } catch (e) { return false; }
+}
+
 self.addEventListener('install', event => {
     event.waitUntil(
         caches.open(SHELL_CACHE)
@@ -56,6 +68,12 @@ self.addEventListener('fetch', event => {
 
     // Googleタイル: キャッシュ一切なしでネットワークへ素通し（保存禁止のため）
     if (isGoogleTile(req.url)) {
+        event.respondWith(fetch(req));
+        return;
+    }
+
+    // 更新確認: キャッシュを一切使わず常にネットワークへ直接フェッチ（1回目から最新判定できるように）
+    if (isUpdateCheck(req.url)) {
         event.respondWith(fetch(req));
         return;
     }

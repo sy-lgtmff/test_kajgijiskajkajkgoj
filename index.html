@@ -20,7 +20,7 @@
             window.top.location = window.self.location.href;
         }
     </script>
-    <title>現場踏査写真管理アプリ(現場調査用) (Phase 5.98)</title>
+    <title>現場踏査写真管理アプリ(現場調査用) (Phase 5.99)</title>
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
     <link rel="apple-touch-icon" href="icon-192.png">
@@ -144,12 +144,26 @@ body { margin: 0; padding: 0; background-color: #666; font-family: sans-serif; d
     font-size: 0.85em; font-family: Menlo, Consolas, monospace;
 }
 .spec-container .spec-table-wrap { overflow-x: auto; margin: 10px 0; border: 1px solid #e0e4e8; border-radius: 6px; }
-.spec-container table { width: 100%; border-collapse: collapse; font-size: 0.82rem; min-width: 480px; }
+/* 【重要】以前はmin-width:480pxを指定しており、スマホ幅（375px前後）では
+   常にテーブルが横スクロール状態になっていた。ページ自体は横スクロールしない
+   ものの、テーブル部分だけ横に余白ができ「スクロールしづらい」原因になって
+   いたため、min-widthを撤廃しビューポート幅に自然に収まるようにした
+   （代わりにセル内で折り返す。列が窮屈になるがスマホでの読みやすさを優先）。 */
+.spec-container table { width: 100%; border-collapse: collapse; font-size: 0.82rem; table-layout: fixed; }
+.spec-container table td, .spec-container table th { word-break: break-word; }
 .spec-container table th, .spec-container table td { padding: 8px 10px; text-align: left; border-bottom: 1px solid #e5e9ec; vertical-align: top; }
 .spec-container table th { background: var(--primary-color); color: #fff; white-space: nowrap; position: sticky; top: 0; }
 .spec-container table tr:last-child td { border-bottom: none; }
 .spec-container table tr:nth-child(even) td { background: #f7f9fa; }
 .spec-container table td:first-child { white-space: nowrap; font-weight: bold; color: var(--accent-color); }
+
+/* 「更新」タブの更新履歴（バージョンごとに開閉できるアコーディオン、デフォルト閉） */
+.history-item { border: 1px solid #e0e4e8; border-radius: 6px; margin-bottom: 6px; background: #fff; overflow: hidden; }
+.history-item summary { padding: 10px 14px; font-weight: bold; cursor: pointer; color: var(--primary-color); list-style: none; font-size: 0.9rem; }
+.history-item summary::-webkit-details-marker { display: none; }
+.history-item summary::before { content: "▸ "; color: #16a085; }
+.history-item[open] summary::before { content: "▾ "; }
+.history-item p { margin: 0; padding: 0 14px 12px 14px; font-size: 0.82rem; line-height: 1.6; color: #444; }
 
 /* セクションタブ（旧アコーディオン） */
 .section-tabs {
@@ -560,8 +574,8 @@ body.app-touch .sketch-icon-btn-trash { bottom: 29px; }
                 <div id="help-spec" class="help-tab-content">
                 <div class="spec-container">
     <header class="spec-header">
-        <h2>被災状況調査システム 開発仕様書 (Phase 5.98)</h2>
-        <p><strong>Last Updated:</strong> Phase 5.98 (白紙メモを写真に保存する際、現在地のGPS情報が一切埋め込まれていなかった不具合を修正。カメラ撮影時と同じgpsManagerから取得するようにした)</p>
+        <h2>被災状況調査システム 開発仕様書 (Phase 5.99)</h2>
+        <p><strong>Last Updated:</strong> Phase 5.99 (「開発方針」タブの表内min-width指定によりスマホ幅で横スクロールが発生していた問題を修正。「更新履歴」を「開発方針」タブから「更新」タブへ移動し、バージョンごとに開閉できるアコーディオン形式にした。Service Workerが更新確認リクエストをキャッシュから返してしまい、更新ボタンを2回押さないと最新版を検知できなかった不具合を修正)</p>
         <span class="spec-status-badge">App A (Stable)</span>
     </header>
 
@@ -695,40 +709,7 @@ body.app-touch .sketch-icon-btn-trash { bottom: 29px; }
 
     <section>
         <h3>7. アプリ更新管理について</h3>
-        <p>アプリのバージョン確認・更新は「更新」タブ（ヘッダーの3つ目のタブ）に移動した（Phase 5.83）。以前はこの「開発方針」タブの末尾にあったが、独立したタブに切り出し、更新確認だけを目的に開けるようにした。</p>
-    </section>
-
-    <section>
-        <h3>8. 更新履歴</h3>
-        <div class="spec-table-wrap">
-        <table>
-            <tr><th>Phase</th><th>内容</th></tr>
-            <tr><td>5.98</td><td>sketchApp.saveToPhoto()（白紙メモを写真に保存）が、写真データに`lat`/`lng`/`gpsAccuracy`/`gpsFixed`/`azimuth`フィールドを一切含めておらず、位置図タブに位置情報付きマーカーとして表示されなかった。photoApp.handleCameraFile()と同じくgpsManager.getCurrentForPhoto()から現在地を取得して埋め込むよう修正（GPS未取得時はnullのまま、他の写真と同じ挙動）。</td></tr>
-            <tr><td>5.97</td><td>位置図⇄白紙メモのタブを往復するたびに白紙メモの「保存」「全消去」ボタンがどんどん下にずれて見えなくなる不具合を修正。原因は#app-containerが`min-height:100vh`（上限なし）だったこと。sketchApp.resizeAndClear()の高さ計算が#main-contentの実測下端を基準にしていたため、計算結果がわずかでも大きすぎるとページ全体が押し広げられ、次の計算がその膨らんだ状態を基準にしてしまい、雪だるま式に増大していた（往復5回でcanvas高さ491px→506px、ボタンが29px下にずれることを確認）。`height:100vh`に固定し、#main-contentのoverflow-y:autoが本来の設計どおり内部スクロールとして機能するようにしたところ、8回往復しても数値が完全に安定することを確認した。</td></tr>
-            <tr><td>5.96</td><td>「管理項目」「位置図」「写真」「データ入出力」の各タブ（.accordion-header）が背景・境界とも同色（白）で、選択していないと境目が分からなかった。`.accordion-header:not(:last-child) { border-right: 1px solid #e0e0e0; }`を追加し、タブ間に薄い区切り線を入れた。</td></tr>
-            <tr><td>5.95</td><td>白紙メモの「保存」「全消去」ボタンの位置を、位置図タブの「現在地」「地図を写真に保存」ボタンの実測位置（Leafletのbottomrightコントロールが計算する座標）にピクセル単位で合わせた。right:10px→12px、上段（保存）bottom:56px/64px→87px、下段（全消去）bottom:10px→29pxに調整し、実測値との誤差1px未満まで一致させた。</td></tr>
-            <tr><td>5.94</td><td>「地図を写真に保存」「写真に保存」（ダウンロードアイコン）が上寄りに表示される不具合を修正。元のSVGは`transform="matrix(1,0,0,1,-15,-41.85)"`でviewBox"0 0 320 327"に合わせていたが、Y方向の平行移動量が実際のパス座標（y:20〜270）とviewBoxの高さ（327）の中心に合っておらず、内容が上寄り・下に大きな余白ができていた。transformを使わず、パスの実座標に直接フィットするviewBox"15 5 320 280"に変更し、上下左右とも均等な余白になるようにした。</td></tr>
-            <tr><td>5.93</td><td>白紙メモの「写真に保存」「全消去」ボタンも、地図下の固定行（.sketch-actions）からcanvasに重ねるフローティングアイコンボタン（.sketch-icon-btn）に変更。ユーザー提供のダウンロード/ゴミ箱SVGアイコンを使用し、地図の「現在地」ボタンと同じ大きさで右下に縦並び配置（保存が上、消去が下）。サイズの一致には当初pointer:coarseメディアクエリを使ったが、Leaflet自身のL.Browser.touch判定と食い違うことがあったため、body.app-touchクラス（DOMContentLoadedでL.Browser.touchを見て付与）に切り替えて確実に一致させた。</td></tr>
-            <tr><td>5.92</td><td>「全て消去」ボタン（mapApp.clearLayers）を削除。「地図を写真に保存」ボタンをユーザー提供のダウンロードSVGアイコンを使ったアイコンボタン（SaveMapControl）にし、「現在地」（LocateControl）と同じ大きさ・スタイル（.map-icon-btn、旧.locate-control-btnから改名）で右下に縦並び配置した。Leafletのbottomright位置は後から追加したコントロールほど地図中心側（上）に積み上がる仕様のため、「現在地」を上にするにはSaveMapControlを先にLocateControlを後にaddTo()する必要があった。</td></tr>
-            <tr><td>5.91</td><td>「地図を写真に保存」「全て消去」ボタンを、地図の下に専有スペースを取る固定行（.map-controls）から、地図に重ねて表示するフローティングボタン（.map-floating-actions）に変更。右下の「現在地」ボタン・左下の「注釈」チェックボックスと重ならない高さ（bottom:85px）に配置。ボタン行が専有スペースを取らなくなった分、mapApp.fitMapHeight()の計算からも差し引き分を削除し、地図表示領域がさらに広がった。</td></tr>
-            <tr><td>5.90</td><td>「現在地」ボタンを.map-controlsの通常ボタンからフローティングのアイコンボタン（LocateControl、右下）に変更。ベースマップ選択（レイヤーコントロールのトグルアイコン）と同じ大きさ（通常36px/タッチ端末44px）に揃え、ユーザー提供のSVGアイコンを埋め込んだ。あわせて「テキスト表示」チェックボックス（TextToggleControl）を右下から左下へ移動し、表記を「注釈」に変更した。</td></tr>
-            <tr><td>5.89</td><td>白紙メモ（sketchApp）のキャンバスも、地図と同じ理由（固定height = window.innerHeight*0.55）で操作ボタン（全消去/写真に保存）の下に空白ができていた。resizeAndClear()を修正し、#main-content下端までを実測してキャンバス高さを動的に割り当てるようにした（地図と違いwindow resizeでは再計算しない＝描画中の内容が消えるのを防ぐため、白紙メモタブを開いた時のみ再計算）。</td></tr>
-            <tr><td>5.88</td><td>`#map`が固定`height:55vh`だったため、ビューポートの縦横比によっては#main-content（残り全領域）より地図が低くなり、操作ボタンの下に大きな空白ができていた（Phase 5.87の修正はこの根本原因ではなかった）。mapApp.fitMapHeight()を追加し、地図要素の現在位置から#main-content下端までを実測して地図の高さを動的に割り当てるようにした。位置図タブを開いた時・ウィンドウリサイズ時（画面回転含む）に再計算する。</td></tr>
-            <tr><td>5.87</td><td>位置図エリアの`.accordion-content`に`no-padding`クラスが指定されていたが、対応するCSSルールが未定義だったため、通常のpadding:15pxがそのまま適用され、地図・操作ボタンの周囲（特にボタン下）に意図しない余白ができていた。`.accordion-content.no-padding { padding: 0; }`を追加して修正。</td></tr>
-            <tr><td>5.86</td><td>位置図タブの「現在地」ボタン（mapApp.setCurrentLocation）は地図をパン・ズームするだけで自分の位置を示すマーカーが無かったため、Leafletの`locationfound`イベントで取得した座標に青丸マーカー＋精度円（accuracy）を表示するようにした。約5秒後に自動で消える。連打時は前回の表示・タイマーを解除してから出し直す。</td></tr>
-            <tr><td>5.85</td><td>「開発方針」タブのレイアウトが見づらいとの指摘を受け全面改修。カード型のセクション区切り、見出しへの色装飾、リストの行間・区切り線、テーブルのゼブラ配色・横スクロール対応などを追加し、視認性を改善した。</td></tr>
-            <tr><td>5.84</td><td>ベースマップにGoogleタイル（マップ／航空写真／ハイブリッド）を追加。個人カスタマイズ版限定・非公式URLのため、Service Workerのキャッシュ対象からは除外（オフライン保存はしない）。「開発方針」タブに本「更新履歴」セクションを追加。</td></tr>
-            <tr><td>5.83</td><td>ヘッダータブを整理。「アプリ」タブを「ホーム」に改名し、「アプリ化の手順」「開発方針」を「ヘルプ」タブ内のサブタブに統合。旧「開発方針」末尾のアプリ更新管理を独立した「更新」タブへ移動。</td></tr>
-            <tr><td>5.82</td><td>写真キャッシュ（IndexedDB）の信頼性を強化。syncAll()をclear+putの単一トランザクションに変更し、中断時のデータ消失リスクを解消。撮影のたびに二重実行されていたDB同期を1回に削減。「新規調査開始」でIndexedDBの写真キャッシュが削除されない不具合を修正。</td></tr>
-            <tr><td>5.81</td><td>カメラロール自動保存が実機（iOS）で必ず失敗する場合があると判明。写真ツールバーに「📥 保存」ボタンを新設し、ユーザーの直接タップから確実にカメラロールへ保存できるようにした。</td></tr>
-            <tr><td>5.80</td><td>カメラロール保存の原因切り分け用に、失敗パターンごとの診断トーストを追加。</td></tr>
-            <tr><td>5.79</td><td>カメラロール保存が機能しない不具合を修正。navigator.share()に必要なユーザー操作起点が、画像リサイズ処理のawaitを待つ間に失効していたのが原因。</td></tr>
-            <tr><td>5.78</td><td>ヘッダー内のロゴ画像を削除。</td></tr>
-            <tr><td>5.77</td><td>GPS/方位センサーの許可待ちで撮影ボタンが恒久的に押せなくなる不具合の対策を強化（許可待ちウォッチドッグ・二重チェック）。撮影時にカメラロールへ保存する設定を追加。</td></tr>
-            <tr><td>5.76</td><td>Google Apps Script配信時のiframeサンドボックス脱出処理を追加。</td></tr>
-            <tr><td>5.75</td><td>写真の位置図表示を追加。位置情報を持つ写真をカメラアイコンのマーカーとして地図に表示し、撮影方向（azimuth）を矢印で重ねて表示する。</td></tr>
-        </table>
-        </div>
+        <p>アプリのバージョン確認・更新は「更新」タブ（ヘッダーの3つ目のタブ）に移動した（Phase 5.83）。以前はこの「開発方針」タブの末尾にあったが、独立したタブに切り出し、更新確認だけを目的に開けるようにした。「更新履歴」も同じ理由でPhase 5.99から「更新」タブへ移動し、バージョンごとに開閉できるアコーディオン形式にした（デフォルトは閉じた状態）。</p>
     </section>
 </div>
                 </div>
@@ -738,11 +719,40 @@ body.app-touch .sketch-icon-btn-trash { bottom: 29px; }
                 <div style="padding: 20px;">
                     <div style="padding: 15px; background: #e8f6f3; border: 1px solid #a2d9ce; border-radius: 4px;">
                         <p style="margin:0 0 10px 0; font-weight:bold; color: #16a085;">アプリ更新管理</p>
-                        <p style="margin:0 0 5px 0; font-size:0.9rem;">現在のバージョン: <strong id="current-version-display">Phase 5.98</strong></p>
+                        <p style="margin:0 0 5px 0; font-size:0.9rem;">現在のバージョン: <strong id="current-version-display">Phase 5.99</strong></p>
                         <div style="display:flex; align-items:center; gap:10px;">
                             <button id="update-app-btn" type="button" class="btn-main" style="width:auto; padding:8px 16px;" onclick="appControl.checkForUpdate()">更新を確認する</button>
                             <span id="update-status" style="font-size:0.9rem; color:#555;"></span>
                         </div>
+                    </div>
+
+                    <div style="margin-top: 20px;">
+                        <p style="font-weight:bold; color:#2c3e50; margin-bottom:10px;">更新履歴</p>
+                        <details class="history-item"><summary>Phase 5.99</summary><p>「開発方針」タブの表に`min-width:480px`を指定していたため、スマホ幅では常にテーブルが横スクロール状態になり「右側に余白があってスクロールしづらい」原因になっていた。min-widthを撤廃し`table-layout:fixed`と`word-break:break-word`でビューポート幅に収まるよう修正。また「更新履歴」を「開発方針」タブの表形式から、この「更新」タブの更新確認欄の下へ移動し、バージョンごとに開閉できるアコーディオン形式（デフォルト閉）にした。加えて、iPhoneで更新ボタンを押しても1回目は反応せず2回目でようやく更新される不具合を修正。原因はService Workerのstale-while-revalidateキャッシュが更新確認リクエスト（index.html?t=タイムスタンプ）にも古いキャッシュを即返してしまうことだったため、更新確認だけはキャッシュを一切使わず常にネットワークへ直接フェッチするようsw.jsを変更した。</p></details>
+                        <details class="history-item"><summary>Phase 5.98</summary><p>sketchApp.saveToPhoto()（白紙メモを写真に保存）が、写真データに`lat`/`lng`/`gpsAccuracy`/`gpsFixed`/`azimuth`フィールドを一切含めておらず、位置図タブに位置情報付きマーカーとして表示されなかった。photoApp.handleCameraFile()と同じくgpsManager.getCurrentForPhoto()から現在地を取得して埋め込むよう修正（GPS未取得時はnullのまま、他の写真と同じ挙動）。</p></details>
+                        <details class="history-item"><summary>Phase 5.97</summary><p>位置図⇄白紙メモのタブを往復するたびに白紙メモの「保存」「全消去」ボタンがどんどん下にずれて見えなくなる不具合を修正。原因は#app-containerが`min-height:100vh`（上限なし）だったこと。sketchApp.resizeAndClear()の高さ計算が#main-contentの実測下端を基準にしていたため、計算結果がわずかでも大きすぎるとページ全体が押し広げられ、次の計算がその膨らんだ状態を基準にしてしまい、雪だるま式に増大していた（往復5回でcanvas高さ491px→506px、ボタンが29px下にずれることを確認）。`height:100vh`に固定し、#main-contentのoverflow-y:autoが本来の設計どおり内部スクロールとして機能するようにしたところ、8回往復しても数値が完全に安定することを確認した。</p></details>
+                        <details class="history-item"><summary>Phase 5.96</summary><p>「管理項目」「位置図」「写真」「データ入出力」の各タブ（.accordion-header）が背景・境界とも同色（白）で、選択していないと境目が分からなかった。`.accordion-header:not(:last-child) { border-right: 1px solid #e0e0e0; }`を追加し、タブ間に薄い区切り線を入れた。</p></details>
+                        <details class="history-item"><summary>Phase 5.95</summary><p>白紙メモの「保存」「全消去」ボタンの位置を、位置図タブの「現在地」「地図を写真に保存」ボタンの実測位置（Leafletのbottomrightコントロールが計算する座標）にピクセル単位で合わせた。right:10px→12px、上段（保存）bottom:56px/64px→87px、下段（全消去）bottom:10px→29pxに調整し、実測値との誤差1px未満まで一致させた。</p></details>
+                        <details class="history-item"><summary>Phase 5.94</summary><p>「地図を写真に保存」「写真に保存」（ダウンロードアイコン）が上寄りに表示される不具合を修正。元のSVGは`transform="matrix(1,0,0,1,-15,-41.85)"`でviewBox"0 0 320 327"に合わせていたが、Y方向の平行移動量が実際のパス座標（y:20〜270）とviewBoxの高さ（327）の中心に合っておらず、内容が上寄り・下に大きな余白ができていた。transformを使わず、パスの実座標に直接フィットするviewBox"15 5 320 280"に変更し、上下左右とも均等な余白になるようにした。</p></details>
+                        <details class="history-item"><summary>Phase 5.93</summary><p>白紙メモの「写真に保存」「全消去」ボタンも、地図下の固定行（.sketch-actions）からcanvasに重ねるフローティングアイコンボタン（.sketch-icon-btn）に変更。ユーザー提供のダウンロード/ゴミ箱SVGアイコンを使用し、地図の「現在地」ボタンと同じ大きさで右下に縦並び配置（保存が上、消去が下）。サイズの一致には当初pointer:coarseメディアクエリを使ったが、Leaflet自身のL.Browser.touch判定と食い違うことがあったため、body.app-touchクラス（DOMContentLoadedでL.Browser.touchを見て付与）に切り替えて確実に一致させた。</p></details>
+                        <details class="history-item"><summary>Phase 5.92</summary><p>「全て消去」ボタン（mapApp.clearLayers）を削除。「地図を写真に保存」ボタンをユーザー提供のダウンロードSVGアイコンを使ったアイコンボタン（SaveMapControl）にし、「現在地」（LocateControl）と同じ大きさ・スタイル（.map-icon-btn、旧.locate-control-btnから改名）で右下に縦並び配置した。Leafletのbottomright位置は後から追加したコントロールほど地図中心側（上）に積み上がる仕様のため、「現在地」を上にするにはSaveMapControlを先にLocateControlを後にaddTo()する必要があった。</p></details>
+                        <details class="history-item"><summary>Phase 5.91</summary><p>「地図を写真に保存」「全て消去」ボタンを、地図の下に専有スペースを取る固定行（.map-controls）から、地図に重ねて表示するフローティングボタン（.map-floating-actions）に変更。右下の「現在地」ボタン・左下の「注釈」チェックボックスと重ならない高さ（bottom:85px）に配置。ボタン行が専有スペースを取らなくなった分、mapApp.fitMapHeight()の計算からも差し引き分を削除し、地図表示領域がさらに広がった。</p></details>
+                        <details class="history-item"><summary>Phase 5.90</summary><p>「現在地」ボタンを.map-controlsの通常ボタンからフローティングのアイコンボタン（LocateControl、右下）に変更。ベースマップ選択（レイヤーコントロールのトグルアイコン）と同じ大きさ（通常36px/タッチ端末44px）に揃え、ユーザー提供のSVGアイコンを埋め込んだ。あわせて「テキスト表示」チェックボックス（TextToggleControl）を右下から左下へ移動し、表記を「注釈」に変更した。</p></details>
+                        <details class="history-item"><summary>Phase 5.89</summary><p>白紙メモ（sketchApp）のキャンバスも、地図と同じ理由（固定height = window.innerHeight*0.55）で操作ボタン（全消去/写真に保存）の下に空白ができていた。resizeAndClear()を修正し、#main-content下端までを実測してキャンバス高さを動的に割り当てるようにした（地図と違いwindow resizeでは再計算しない＝描画中の内容が消えるのを防ぐため、白紙メモタブを開いた時のみ再計算）。</p></details>
+                        <details class="history-item"><summary>Phase 5.88</summary><p>`#map`が固定`height:55vh`だったため、ビューポートの縦横比によっては#main-content（残り全領域）より地図が低くなり、操作ボタンの下に大きな空白ができていた（Phase 5.87の修正はこの根本原因ではなかった）。mapApp.fitMapHeight()を追加し、地図要素の現在位置から#main-content下端までを実測して地図の高さを動的に割り当てるようにした。位置図タブを開いた時・ウィンドウリサイズ時（画面回転含む）に再計算する。</p></details>
+                        <details class="history-item"><summary>Phase 5.87</summary><p>位置図エリアの`.accordion-content`に`no-padding`クラスが指定されていたが、対応するCSSルールが未定義だったため、通常のpadding:15pxがそのまま適用され、地図・操作ボタンの周囲（特にボタン下）に意図しない余白ができていた。`.accordion-content.no-padding { padding: 0; }`を追加して修正。</p></details>
+                        <details class="history-item"><summary>Phase 5.86</summary><p>位置図タブの「現在地」ボタン（mapApp.setCurrentLocation）は地図をパン・ズームするだけで自分の位置を示すマーカーが無かったため、Leafletの`locationfound`イベントで取得した座標に青丸マーカー＋精度円（accuracy）を表示するようにした。約5秒後に自動で消える。連打時は前回の表示・タイマーを解除してから出し直す。</p></details>
+                        <details class="history-item"><summary>Phase 5.85</summary><p>「開発方針」タブのレイアウトが見づらいとの指摘を受け全面改修。カード型のセクション区切り、見出しへの色装飾、リストの行間・区切り線、テーブルのゼブラ配色・横スクロール対応などを追加し、視認性を改善した。</p></details>
+                        <details class="history-item"><summary>Phase 5.84</summary><p>ベースマップにGoogleタイル（マップ／航空写真／ハイブリッド）を追加。個人カスタマイズ版限定・非公式URLのため、Service Workerのキャッシュ対象からは除外（オフライン保存はしない）。「開発方針」タブに「更新履歴」セクションを追加（Phase 5.99で「更新」タブへ移動）。</p></details>
+                        <details class="history-item"><summary>Phase 5.83</summary><p>ヘッダータブを整理。「アプリ」タブを「ホーム」に改名し、「アプリ化の手順」「開発方針」を「ヘルプ」タブ内のサブタブに統合。旧「開発方針」末尾のアプリ更新管理を独立した「更新」タブへ移動。</p></details>
+                        <details class="history-item"><summary>Phase 5.82</summary><p>写真キャッシュ（IndexedDB）の信頼性を強化。syncAll()をclear+putの単一トランザクションに変更し、中断時のデータ消失リスクを解消。撮影のたびに二重実行されていたDB同期を1回に削減。「新規調査開始」でIndexedDBの写真キャッシュが削除されない不具合を修正。</p></details>
+                        <details class="history-item"><summary>Phase 5.81</summary><p>カメラロール自動保存が実機（iOS）で必ず失敗する場合があると判明。写真ツールバーに「📥 保存」ボタンを新設し、ユーザーの直接タップから確実にカメラロールへ保存できるようにした。</p></details>
+                        <details class="history-item"><summary>Phase 5.80</summary><p>カメラロール保存の原因切り分け用に、失敗パターンごとの診断トーストを追加。</p></details>
+                        <details class="history-item"><summary>Phase 5.79</summary><p>カメラロール保存が機能しない不具合を修正。navigator.share()に必要なユーザー操作起点が、画像リサイズ処理のawaitを待つ間に失効していたのが原因。</p></details>
+                        <details class="history-item"><summary>Phase 5.78</summary><p>ヘッダー内のロゴ画像を削除。</p></details>
+                        <details class="history-item"><summary>Phase 5.77</summary><p>GPS/方位センサーの許可待ちで撮影ボタンが恒久的に押せなくなる不具合の対策を強化（許可待ちウォッチドッグ・二重チェック）。撮影時にカメラロールへ保存する設定を追加。</p></details>
+                        <details class="history-item"><summary>Phase 5.76</summary><p>Google Apps Script配信時のiframeサンドボックス脱出処理を追加。</p></details>
+                        <details class="history-item"><summary>Phase 5.75</summary><p>写真の位置図表示を追加。位置情報を持つ写真をカメラアイコンのマーカーとして地図に表示し、撮影方向（azimuth）を矢印で重ねて表示する。</p></details>
                     </div>
                 </div>
             </section>
