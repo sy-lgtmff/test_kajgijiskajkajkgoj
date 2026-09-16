@@ -20,7 +20,7 @@
             window.top.location = window.self.location.href;
         }
     </script>
-    <title>現場踏査写真管理アプリ(現場調査用) (Ver 6.10)</title>
+    <title>現場踏査写真管理アプリ(現場調査用) (Ver 6.11)</title>
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
     <link rel="apple-touch-icon" href="icon-192.png">
@@ -543,19 +543,18 @@ body.app-touch .sketch-icon-btn-trash { bottom: 29px; }
                 <div style="padding: 20px;">
                     <div style="padding: 15px; background: #e8f6f3; border: 1px solid #a2d9ce; border-radius: 4px;">
                         <p style="margin:0 0 10px 0; font-weight:bold; color: #16a085;">アプリ更新管理</p>
-                        <p style="margin:0 0 5px 0; font-size:0.9rem;">現在のバージョン: <strong id="current-version-display">Ver 6.10</strong></p>
-                        <div style="display:flex; align-items:center; gap:10px;">
-                            <button id="update-app-btn" type="button" class="btn-main" style="width:auto; padding:8px 16px;" onclick="appControl.checkForUpdate()">更新を確認する</button>
+                        <p style="margin:0 0 5px 0; font-size:0.9rem;">現在のバージョン: <strong id="current-version-display">Ver 6.11</strong></p>
+                        <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+                            <button id="update-app-btn" type="button" class="btn-main" style="width:auto; padding:8px 16px;" onclick="appControl.checkForUpdate()">更新</button>
+                            <button id="hard-reset-btn" type="button" style="width:auto; padding:8px 16px; background:#e67e22; color:#fff; border:none; border-radius:4px; font-weight:bold; cursor:pointer;" onclick="appControl.hardResetUpdate()">🗑 キャッシュを削除して更新</button>
                             <span id="update-status" style="font-size:0.9rem; color:#555;"></span>
                         </div>
-                        <div style="margin-top:10px; padding-top:10px; border-top:1px dashed #a2d9ce;">
-                            <button id="hard-reset-btn" type="button" style="width:auto; padding:8px 16px; background:#e67e22; color:#fff; border:none; border-radius:4px; font-weight:bold; cursor:pointer;" onclick="appControl.hardResetUpdate()">🗑 キャッシュを削除して更新</button>
-                            <p style="margin:6px 0 0 0; font-size:0.78rem; color:#666;">「更新を確認する」で直らない場合はこちら。保存済みのオフライン地図タイルも削除され、再表示時に読み込み直しになります（入力中のデータは消えません）。</p>
-                        </div>
+                        <p style="margin:6px 0 0 0; font-size:0.78rem; color:#666;">「更新」で直らない場合は「キャッシュを削除して更新」をお試しください。保存済みのオフライン地図タイルも削除され、再表示時に読み込み直しになります（入力中のデータは消えません）。</p>
                     </div>
 
                     <div style="margin-top: 20px;">
                         <p style="font-weight:bold; color:#2c3e50; margin-bottom:10px;">更新履歴</p>
+                        <details class="history-item"><summary>Ver 6.11</summary><p>「更新」タブのボタン表記・レイアウトを整理。「更新を確認する」ボタンを「更新」に短縮し、「🗑 キャッシュを削除して更新」ボタンをその隣（同じ行）に並べるようにした。</p></details>
                         <details class="history-item"><summary>Ver 6.10</summary><p>バージョン表記を「Phase X.XX」から「Ver X.XX」に変更した。タイトル・現在のバージョン表示・更新履歴の各見出しをすべて統一。更新確認（checkForUpdate）が新旧バージョンを比較するために参照している&lt;title&gt;タグの正規表現も、新しい表記に合わせて更新済み。</p></details>
                         <details class="history-item"><summary>Ver 6.09</summary><p>「撮影ボタンを押すと、押下エフェクトは出て一見反応しているのに、方位センサーの許可（動作と方向の使用確認）ダイアログが出て、以後撮影ボタンが反応しなくなる」不具合の真因を特定・修正。原因はtriggerCameraInput()内のinput.click()（#photo-camera-input、非表示のfile input）自体がdocumentまでバブリングするclickイベントを発生させ、そのe.targetが#photo-camera-input（#photo-camera-btnではない）だったため、armAzimuthFirstClickの「撮影ボタンのクリックは除外する」チェックをすり抜けていたこと。結果、撮影ボタンを押してカメラが起動するまさにその瞬間に方位センサーの許可ダイアログも呼ばれてしまい、iOSのネイティブダイアログ同士が競合して以後カメラが起動しなくなっていた。input.click()等で発生する合成クリックはe.isTrustedがfalseになる性質を利用し、armAzimuthFirstClickの先頭でisTrustedでないクリックは無視してリスナーを維持し続けるよう修正した（本物のユーザー操作によるクリックのみを起点にする）。</p></details>
                         <details class="history-item"><summary>Ver 6.08</summary><p>Phase 6.05の許可待ちガード（#permission-pending-guard）が実際には機能しておらず、撮影ボタンが押せなくなる不具合が直っていなかった件を修正。原因はガードのクリック/タッチハンドラがpreventDefault()のみでstopPropagation()を呼んでいなかったこと。写真タブがデフォルト表示のためアプリ起動直後は方位センサーがまだ起動しておらず、「ページ内で最初に行われたクリックを起点に方位センサーを起動する」armAzimuthFirstClick（document直下のclickリスナー）が別途仕込まれているが、ガードが吸収したはずのタップもdocumentまでバブリングしてこのリスナーに届いてしまい、GPSの許可待ち中（＝ガード表示中）にもかかわらず方位センサーの許可ダイアログが新たに呼ばれ、結果としてGPSダイアログと方位ダイアログが同時に走る＝本来防ぎたかった競合をガード自身が引き起こしていた。ガード側にstopPropagation()・stopImmediatePropagation()を追加してバブリングを止め、さらに二重の安全策としてarmAzimuthFirstClick側でもgpsManager.permissionPendingを確認し、pending中のクリックでは起動せず次のクリックを待つよう修正した。</p></details>
