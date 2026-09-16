@@ -20,7 +20,7 @@
             window.top.location = window.self.location.href;
         }
     </script>
-    <title>現場踏査写真管理アプリ(現場調査用) (Phase 6.01)</title>
+    <title>現場踏査写真管理アプリ(現場調査用) (Phase 6.02)</title>
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
     <link rel="apple-touch-icon" href="icon-192.png">
@@ -533,7 +533,7 @@ body.app-touch .sketch-icon-btn-trash { bottom: 29px; }
                 <div style="padding: 20px;">
                     <div style="padding: 15px; background: #e8f6f3; border: 1px solid #a2d9ce; border-radius: 4px;">
                         <p style="margin:0 0 10px 0; font-weight:bold; color: #16a085;">アプリ更新管理</p>
-                        <p style="margin:0 0 5px 0; font-size:0.9rem;">現在のバージョン: <strong id="current-version-display">Phase 6.01</strong></p>
+                        <p style="margin:0 0 5px 0; font-size:0.9rem;">現在のバージョン: <strong id="current-version-display">Phase 6.02</strong></p>
                         <div style="display:flex; align-items:center; gap:10px;">
                             <button id="update-app-btn" type="button" class="btn-main" style="width:auto; padding:8px 16px;" onclick="appControl.checkForUpdate()">更新を確認する</button>
                             <span id="update-status" style="font-size:0.9rem; color:#555;"></span>
@@ -542,6 +542,7 @@ body.app-touch .sketch-icon-btn-trash { bottom: 29px; }
 
                     <div style="margin-top: 20px;">
                         <p style="font-weight:bold; color:#2c3e50; margin-bottom:10px;">更新履歴</p>
+                        <details class="history-item"><summary>Phase 6.02</summary><p>位置図タブの「現在地」ボタンを押した際、現在地マーカーに向いている方向（方位）も矢印で表示するようにした。mapApp.setCurrentLocation()内でazimuthManager.startListening()も合わせて呼ぶ（iOSは方位センサーの許可ダイアログをユーザー操作起点でしか出せないため、現在地ボタンのクリックを起点にする）。現在地マーカーは従来の円形（circleMarker）からdivIconのSVGマーカーに変更し、写真マーカーと同様に方位分だけ回転した矢印を重ねて描画する。deviceorientationイベントを直接フックする仕組みが無いため、マーカー表示中（5秒間）は300ms間隔のポーリングでazimuthManager.currentAzimuthを読み直し、矢印の向きを追従させる。方位が未取得の場合は従来通り矢印なしの丸のみ表示する。</p></details>
                         <details class="history-item"><summary>Phase 6.01</summary><p>「開発方針」タブ（開発仕様書の全文）をindex.htmlから完全に削除し、プロジェクト直下のREADME.mdへ移動した。アプリ利用者には不要な開発者向け情報のため、アプリ本体には埋め込まずリポジトリのドキュメントとして独立管理する方針に変更。これに伴い「ヘルプ」タブは「アプリ化の手順」のみのシンプルな単一画面になり、サブタブ切替UI（.help-sub-tabs等）と対応CSS・JSも不要になったため削除した。</p></details>
                         <details class="history-item"><summary>Phase 6.00</summary><p>Phase 5.99でテーブルのmin-widthを撤廃したにもかかわらず、iPhone実機では依然「開発方針」タブ全体に横スクロールができてしまう不具合が残っていた。原因はテーブルではなく、`--app-max-width: clamp(480px, 100vw, 1400px)`が下限480pxを指定していたこと。100vwが480px未満（iPhoneはほぼ全機種が該当）の場合でもclampの下限が効いて#app-containerが常に480px幅に固定され、画面全体が横スクロール可能になっていた。下限を撤廃し`min(100vw, 1400px)`に変更し、実際のビューポート幅に収まるようにした。</p></details>
                         <details class="history-item"><summary>Phase 5.99</summary><p>「開発方針」タブの表に`min-width:480px`を指定していたため、スマホ幅では常にテーブルが横スクロール状態になり「右側に余白があってスクロールしづらい」原因になっていた。min-widthを撤廃し`table-layout:fixed`と`word-break:break-word`でビューポート幅に収まるよう修正。また「更新履歴」を「開発方針」タブの表形式から、この「更新」タブの更新確認欄の下へ移動し、バージョンごとに開閉できるアコーディオン形式（デフォルト閉）にした。加えて、iPhoneで更新ボタンを押しても1回目は反応せず2回目でようやく更新される不具合を修正。原因はService Workerのstale-while-revalidateキャッシュが更新確認リクエスト（index.html?t=タイムスタンプ）にも古いキャッシュを即返してしまうことだったため、更新確認だけはキャッシュを一切使わず常にネットワークへ直接フェッチするようsw.jsを変更した。</p></details>
@@ -3217,21 +3218,41 @@ window.mapApp = {
         // 「現在地」ボタン（setCurrentLocation→map.locate）で取得した位置を、
         // 青丸マーカー＋精度円として一時的に表示する（約5秒後に自動で消える）。
         // 連打された場合は前回の表示・タイマーを解除してから新しいものを出す。
+        // Phase 6.02: azimuthManagerが向きを取得済みなら、マーカーに矢印で向いている
+        // 方向も表示する。deviceorientationイベント自体をここでフックする仕組みが無いため、
+        // 表示している間（5秒）だけ軽量なポーリングで矢印の向きを追従させる。
         this.map.on('locationfound', (e) => {
             if (this._currentLocTimer) { clearTimeout(this._currentLocTimer); this._currentLocTimer = null; }
+            if (this._currentLocHeadingTimer) { clearInterval(this._currentLocHeadingTimer); this._currentLocHeadingTimer = null; }
             if (this._currentLocMarker) { this.map.removeLayer(this._currentLocMarker); this._currentLocMarker = null; }
             if (this._currentLocCircle) { this.map.removeLayer(this._currentLocCircle); this._currentLocCircle = null; }
 
             this._currentLocCircle = L.circle(e.latlng, {
                 radius: e.accuracy / 2, color: '#3498db', weight: 1, fillColor: '#3498db', fillOpacity: 0.15
             }).addTo(this.map);
-            this._currentLocMarker = L.circleMarker(e.latlng, {
-                radius: 8, color: '#fff', weight: 3, fillColor: '#3498db', fillOpacity: 1
+            this._currentLocMarker = L.marker(e.latlng, {
+                icon: L.divIcon({
+                    html: this._currentLocIconSVG(window.azimuthManager ? azimuthManager.currentAzimuth : null),
+                    className: 'current-loc-marker-icon',
+                    iconSize: [44, 44],
+                    iconAnchor: [22, 22]
+                })
             }).addTo(this.map);
+
+            this._currentLocHeadingTimer = setInterval(() => {
+                if (!this._currentLocMarker) return;
+                this._currentLocMarker.setIcon(L.divIcon({
+                    html: this._currentLocIconSVG(window.azimuthManager ? azimuthManager.currentAzimuth : null),
+                    className: 'current-loc-marker-icon',
+                    iconSize: [44, 44],
+                    iconAnchor: [22, 22]
+                }));
+            }, 300);
 
             this._currentLocTimer = setTimeout(() => {
                 if (this._currentLocMarker) { this.map.removeLayer(this._currentLocMarker); this._currentLocMarker = null; }
                 if (this._currentLocCircle) { this.map.removeLayer(this._currentLocCircle); this._currentLocCircle = null; }
+                if (this._currentLocHeadingTimer) { clearInterval(this._currentLocHeadingTimer); this._currentLocHeadingTimer = null; }
                 this._currentLocTimer = null;
             }, 5000);
         });
@@ -3580,7 +3601,15 @@ window.mapApp = {
             if(window.uiHelper) uiHelper.showToast("地図を写真に追加しました"); else alert("写真に追加しました");
         });
     },
-    setCurrentLocation() { if (this.map) this.map.locate({setView: true, maxZoom: 16}); },
+    // 【重要】方位センサー（DeviceOrientationEvent.requestPermission）はiOSでは
+    // ユーザー操作起点でしか許可ダイアログを出せない。「現在地」ボタンのクリックは
+    // ユーザー操作起点なので、ここでazimuthManager.startListening()も合わせて呼び、
+    // 現在地マーカーに向いている方向の矢印を表示できるようにする。
+    setCurrentLocation() {
+        if (!this.map) return;
+        if (window.azimuthManager) azimuthManager.startListening();
+        this.map.locate({setView: true, maxZoom: 16});
+    },
 
     // 【重要】#mapはheight:55vhの固定高さで作られているが、実際に使える高さ
     // （#main-contentの残り領域）はビューポートの縦横比・ブラウザchromeの量に
@@ -3646,6 +3675,21 @@ window.mapApp = {
                 window.photoApp.render();
             });
         });
+    },
+
+    // 「現在地」マーカーのdivIcon用SVG。現在位置＝青丸、向いている方向＝青矢印。
+    // azが取得できていない（未起動・許可待ち・センサー非対応）場合は矢印なしで丸のみ表示する。
+    _currentLocIconSVG(az) {
+        const arrow = (az !== null && az !== undefined)
+            ? `<g transform="rotate(${az} 22 22)">
+                 <line x1="22" y1="22" x2="22" y2="6" stroke="#3498db" stroke-width="3" stroke-linecap="round"/>
+                 <polygon points="22,0 15,11 29,11" fill="#3498db"/>
+               </g>`
+            : '';
+        return `<svg width="44" height="44" viewBox="0 0 44 44" style="overflow:visible;">` +
+            arrow +
+            `<circle cx="22" cy="22" r="8" fill="#3498db" stroke="#fff" stroke-width="3"/>` +
+            `</svg>`;
     },
 
     // 写真マーカーのdivIcon用SVG。カメラ位置＝オレンジ丸、撮影方向＝赤矢印。
