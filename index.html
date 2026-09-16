@@ -20,7 +20,7 @@
             window.top.location = window.self.location.href;
         }
     </script>
-    <title>現場踏査写真管理アプリ(現場調査用) (Phase 6.03)</title>
+    <title>現場踏査写真管理アプリ(現場調査用) (Phase 6.04)</title>
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
     <link rel="apple-touch-icon" href="icon-192.png">
@@ -199,10 +199,12 @@ canvas.sketch-canvas { display: block; width: 100%; }
     border-radius: 4px; box-shadow: 0 1px 5px rgba(0,0,0,0.4); cursor: pointer; padding: 0; z-index: 10;
 }
 .sketch-icon-btn svg { width: 20px; height: 20px; }
+.sketch-icon-btn-undo { top: 10px; }
 .sketch-icon-btn-save { bottom: 56px; }
 .sketch-icon-btn-trash { bottom: 10px; color: #e74c3c; }
 body.app-touch .sketch-icon-btn { width: 44px; height: 44px; }
 body.app-touch .sketch-icon-btn svg { width: 24px; height: 24px; }
+body.app-touch .sketch-icon-btn-undo { top: 10px; }
 body.app-touch .sketch-icon-btn-save { bottom: 87px; }
 body.app-touch .sketch-icon-btn-trash { bottom: 29px; }
     </style>
@@ -292,12 +294,12 @@ body.app-touch .sketch-icon-btn-trash { bottom: 29px; }
                         <button class="color-btn"        style="background:red;"   onclick="sketchApp.setColor('red',this)"></button>
                         <button class="color-btn"        style="background:blue;"  onclick="sketchApp.setColor('blue',this)"></button>
                     </div>
-                    <div class="sketch-tool-group">
-                        <button class="sketch-btn" onclick="sketchApp.undo()">戻る</button>
-                    </div>
                 </div>
                 <div class="sketch-canvas-container">
                     <canvas id="sketch-canvas" class="sketch-canvas"></canvas>
+                    <button type="button" class="sketch-icon-btn sketch-icon-btn-undo" title="戻る" onclick="sketchApp.undo()">
+                        <svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg"><path d="M333.653,41.349H48.769c-7.187,0-13.031,5.848-13.031,13.027v62.129c0,7.184,5.844,13.028,13.031,13.028h286.223c45.484,0,84.328,34.156,88.43,77.758c2.313,24.539-5.516,48.051-22.039,66.199c-16.305,17.918-39.508,28.191-63.645,28.191H199.769V230.76c0-5.386-4.382-9.77-9.774-9.77c-1.859,0-3.683,0.531-5.25,1.539L4.523,337.525C1.695,339.322,0.004,342.4,0,345.752c-0.004,3.352,1.684,6.434,4.512,8.242L184.75,469.119c1.574,1.004,3.39,1.532,5.246,1.532c5.391,0,9.774-4.383,9.774-9.77v-71.016h137.969c47.727,0,92.294-18.988,125.489-53.465c33.176-34.45,50.449-79.73,48.645-127.504C508.379,116.509,428.43,41.349,333.653,41.349z" style="fill:currentColor;"/></svg>
+                    </button>
                     <button type="button" class="sketch-icon-btn sketch-icon-btn-save" title="写真に保存" onclick="sketchApp.saveToPhoto()">
                         <svg viewBox="15 5 320 280" xmlns="http://www.w3.org/2000/svg"><path d="M175,20L175,174.08" style="fill:none;stroke:currentColor;stroke-width:30px;stroke-linecap:round;"/><path d="M105,120L175,190L245,120" style="fill:none;stroke:currentColor;stroke-width:30px;stroke-linecap:round;stroke-linejoin:round;"/><path d="M30,210L30,270L320,270L320,210" style="fill:none;stroke:currentColor;stroke-width:30px;stroke-linecap:round;stroke-linejoin:round;"/></svg>
                     </button>
@@ -533,7 +535,7 @@ body.app-touch .sketch-icon-btn-trash { bottom: 29px; }
                 <div style="padding: 20px;">
                     <div style="padding: 15px; background: #e8f6f3; border: 1px solid #a2d9ce; border-radius: 4px;">
                         <p style="margin:0 0 10px 0; font-weight:bold; color: #16a085;">アプリ更新管理</p>
-                        <p style="margin:0 0 5px 0; font-size:0.9rem;">現在のバージョン: <strong id="current-version-display">Phase 6.03</strong></p>
+                        <p style="margin:0 0 5px 0; font-size:0.9rem;">現在のバージョン: <strong id="current-version-display">Phase 6.04</strong></p>
                         <div style="display:flex; align-items:center; gap:10px;">
                             <button id="update-app-btn" type="button" class="btn-main" style="width:auto; padding:8px 16px;" onclick="appControl.checkForUpdate()">更新を確認する</button>
                             <span id="update-status" style="font-size:0.9rem; color:#555;"></span>
@@ -542,6 +544,7 @@ body.app-touch .sketch-icon-btn-trash { bottom: 29px; }
 
                     <div style="margin-top: 20px;">
                         <p style="font-weight:bold; color:#2c3e50; margin-bottom:10px;">更新履歴</p>
+                        <details class="history-item"><summary>Phase 6.04</summary><p>白紙メモの「戻る」（sketchApp.undo）ボタンを、ツールバー内のテキストボタンから、キャンバス右上に重ねるフローティングアイコンボタン（.sketch-icon-btn-undo）に変更した。「写真に保存」「全消去」と同じ.sketch-icon-btnベースのスタイルを流用し、サイズを完全に統一（非タッチ36px/タッチ44px）。アイコンはユーザー提供のUターン矢印SVGを使用し、fillをcurrentColorに変更してボタンの文字色を継承するようにした。位置はキャンバス右上（right:12px, top:10px）。</p></details>
                         <details class="history-item"><summary>Phase 6.03</summary><p>「現在地」ボタンを押すたびにズームレベルが強制的に変わってしまう不具合を修正。原因はmap.locate()に渡していたsetView:trueが内部で精度円の範囲に収まるようfitBounds相当の処理を行い、ユーザーが見ていたズームを勝手に変更していたこと。setViewとmaxZoomの指定をやめ、locationfound側でmap.setView(現在地, 現在のズーム)を呼ぶことで、ズームは維持したまま現在地へパンするだけにした。</p></details>
                         <details class="history-item"><summary>Phase 6.02</summary><p>位置図タブの「現在地」ボタンを押した際、現在地マーカーに向いている方向（方位）も矢印で表示するようにした。mapApp.setCurrentLocation()内でazimuthManager.startListening()も合わせて呼ぶ（iOSは方位センサーの許可ダイアログをユーザー操作起点でしか出せないため、現在地ボタンのクリックを起点にする）。現在地マーカーは従来の円形（circleMarker）からdivIconのSVGマーカーに変更し、写真マーカーと同様に方位分だけ回転した矢印を重ねて描画する。deviceorientationイベントを直接フックする仕組みが無いため、マーカー表示中（5秒間）は300ms間隔のポーリングでazimuthManager.currentAzimuthを読み直し、矢印の向きを追従させる。方位が未取得の場合は従来通り矢印なしの丸のみ表示する。</p></details>
                         <details class="history-item"><summary>Phase 6.01</summary><p>「開発方針」タブ（開発仕様書の全文）をindex.htmlから完全に削除し、プロジェクト直下のREADME.mdへ移動した。アプリ利用者には不要な開発者向け情報のため、アプリ本体には埋め込まずリポジトリのドキュメントとして独立管理する方針に変更。これに伴い「ヘルプ」タブは「アプリ化の手順」のみのシンプルな単一画面になり、サブタブ切替UI（.help-sub-tabs等）と対応CSS・JSも不要になったため削除した。</p></details>
