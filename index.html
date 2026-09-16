@@ -20,7 +20,7 @@
             window.top.location = window.self.location.href;
         }
     </script>
-    <title>現場踏査写真管理アプリ(現場調査用) (Phase 6.06)</title>
+    <title>現場踏査写真管理アプリ(現場調査用) (Phase 6.07)</title>
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
     <link rel="apple-touch-icon" href="icon-192.png">
@@ -543,15 +543,20 @@ body.app-touch .sketch-icon-btn-trash { bottom: 29px; }
                 <div style="padding: 20px;">
                     <div style="padding: 15px; background: #e8f6f3; border: 1px solid #a2d9ce; border-radius: 4px;">
                         <p style="margin:0 0 10px 0; font-weight:bold; color: #16a085;">アプリ更新管理</p>
-                        <p style="margin:0 0 5px 0; font-size:0.9rem;">現在のバージョン: <strong id="current-version-display">Phase 6.06</strong></p>
+                        <p style="margin:0 0 5px 0; font-size:0.9rem;">現在のバージョン: <strong id="current-version-display">Phase 6.07</strong></p>
                         <div style="display:flex; align-items:center; gap:10px;">
                             <button id="update-app-btn" type="button" class="btn-main" style="width:auto; padding:8px 16px;" onclick="appControl.checkForUpdate()">更新を確認する</button>
                             <span id="update-status" style="font-size:0.9rem; color:#555;"></span>
+                        </div>
+                        <div style="margin-top:10px; padding-top:10px; border-top:1px dashed #a2d9ce;">
+                            <button id="hard-reset-btn" type="button" style="width:auto; padding:8px 16px; background:#e67e22; color:#fff; border:none; border-radius:4px; font-weight:bold; cursor:pointer;" onclick="appControl.hardResetUpdate()">🗑 キャッシュを削除して更新</button>
+                            <p style="margin:6px 0 0 0; font-size:0.78rem; color:#666;">「更新を確認する」で直らない場合はこちら。保存済みのオフライン地図タイルも削除され、再表示時に読み込み直しになります（入力中のデータは消えません）。</p>
                         </div>
                     </div>
 
                     <div style="margin-top: 20px;">
                         <p style="font-weight:bold; color:#2c3e50; margin-bottom:10px;">更新履歴</p>
+                        <details class="history-item"><summary>Phase 6.07</summary><p>「更新」タブに「🗑 キャッシュを削除して更新」ボタンを追加した。通常の「更新を確認する」で直らない場合の非常手段として、Service Workerのunregisterに加えCache Storageを全削除（SHELL_CACHE・TILE_CACHEとも）した上で、キャッシュバスター付きURL（index.html?t=タイムスタンプ）へ直接遷移する。オフライン用に保存した地図タイルも消えるため確認ダイアログで明示している。LocalStorage・IndexedDB（入力中データ・写真）には触れないため、入力中のデータは消えない。</p></details>
                         <details class="history-item"><summary>Phase 6.06</summary><p>「更新」ボタンで最新版にした直後は正しく表示されるのに、アプリをタスクキルして開き直すと古いバージョンに戻ってしまう不具合を修正。原因は2つ：(1) sw.jsのstale-while-revalidateが裏で最新版を取りに行くfetch()にキャッシュ制御を指定していなかったため、GitHub Pages等が付与するCache-Controlによりブラウザ自身のHTTPキャッシュから古い内容を読んでしまい、Service Worker自身のCache Storageが更新されないことがあった（{cache:'reload'}を追加してブラウザのHTTPキャッシュを必ず迂回するよう修正）。(2) 「更新する」を選んだ際、Service Workerをunregisterしても既存のCache Storage自体は消えずに残るため、再登録される新しいService Workerが最初の1回だけ古いキャッシュを返してしまっていた。更新確認で取得済みの最新HTMLを、遷移前にCache Storage（app-shell-v1）へ直接書き込むことで、次回起動時点から確実に最新版が返るようにした。</p></details>
                         <details class="history-item"><summary>Phase 6.05</summary><p>GPS・方位センサーの許可ダイアログ応答待ち中に撮影ボタン等を押すと、iOSでネイティブ許可ダイアログとカメラ起動が競合し以後カメラが一切起動しなくなる不具合について、従来の対策（撮影ボタンのdisabled化＋triggerCameraInput内の二重チェック）に加えて、画面全体を覆う透明ガード（#permission-pending-guard）を追加した。gpsManager/azimuthManagerいずれかのpermissionPendingがtrueの間は、画面のどこをタップしても（＝写真タブをもう一度タップしたのと同じ「何も変わらない」操作として）吸収され、撮影ボタンを含むあらゆる要素へタップが届かなくなる。updateCameraBtnState()から表示/非表示を一元管理し、許可が下りる（またはウォッチドッグでタイムアウトする）と自動的に消える。</p></details>
                         <details class="history-item"><summary>Phase 6.04</summary><p>白紙メモの「戻る」（sketchApp.undo）ボタンを、ツールバー内のテキストボタンから、キャンバス右上に重ねるフローティングアイコンボタン（.sketch-icon-btn-undo）に変更した。「写真に保存」「全消去」と同じ.sketch-icon-btnベースのスタイルを流用し、サイズを完全に統一（非タッチ36px/タッチ44px）。アイコンはユーザー提供のUターン矢印SVGを使用し、fillをcurrentColorに変更してボタンの文字色を継承するようにした。位置はキャンバス右上（right:12px, top:10px）。</p></details>
@@ -5346,6 +5351,38 @@ window.appControl = {
                 if (btn) btn.disabled = false;
             });
     },
+
+    // 「更新を確認する」の通常フローで直らない場合の非常手段。Service Workerの
+    // unregisterとCache Storageの全削除（SHELL_CACHE・TILE_CACHE両方）を行った上で、
+    // キャッシュを一切使わず最新のindex.htmlへ直接遷移する。オフライン用の地図タイルも
+    // 消去されるため確認ダイアログで明示する。LocalStorage・IndexedDB（入力中データ・
+    // 写真）には一切触れないため、入力中のデータは消えない。
+    async hardResetUpdate() {
+        if (!confirm("キャッシュを全て削除して最新版を再取得します。\n保存済みのオフライン地図タイルも削除されます（再表示時に読み込み直します）。\n入力中のデータは消えません。\n\nよろしいですか？")) return;
+
+        const hardBtn = document.getElementById('hard-reset-btn');
+        const status = document.getElementById('update-status');
+        if (hardBtn) hardBtn.disabled = true;
+        if (status) status.textContent = "キャッシュを削除中...";
+
+        try {
+            if ('serviceWorker' in navigator) {
+                const registrations = await navigator.serviceWorker.getRegistrations();
+                for (const registration of registrations) { await registration.unregister(); }
+            }
+            if ('caches' in window) {
+                const keys = await caches.keys();
+                await Promise.all(keys.map(k => caches.delete(k)));
+            }
+        } catch (e) {
+            console.error("キャッシュ削除エラー:", e);
+        }
+
+        // location.reload()ではなく、キャッシュバスター付きの新規ナビゲーションにする
+        // （SWは既にunregister済みだが、ブラウザ自身のHTTPキャッシュを避けるため）。
+        window.location.href = 'index.html?t=' + new Date().getTime();
+    },
+
     // ---- 初期値をLocalStorageに保存 ----
     saveDefaults() {
         const DEFAULTS_KEY = 'survey_app_defaults';
