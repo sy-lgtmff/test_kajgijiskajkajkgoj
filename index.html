@@ -20,7 +20,7 @@
             window.top.location = window.self.location.href;
         }
     </script>
-    <title>現場踏査写真管理アプリ(現場調査用) (Phase 5.99)</title>
+    <title>現場踏査写真管理アプリ(現場調査用) (Phase 6.00)</title>
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
     <link rel="apple-touch-icon" href="icon-192.png">
@@ -31,7 +31,12 @@
     --primary-color: #2c3e50;
     --accent-color: #3498db;
     --bg-color: #f4f7f6;
-    --app-max-width: clamp(480px, 100vw, 1400px);
+    /* 【重要】以前はclamp(480px, 100vw, 1400px)で下限480pxを指定しており、
+       iPhoneなど100vwが480px未満の画面では#app-containerが常に480px幅に
+       固定され、画面全体が横スクロール可能になってしまっていた（Phase 5.99の
+       表のmin-width修正だけでは解消しない、より根本的な原因）。下限を撤廃し、
+       スマホでは実際のビューポート幅に収まるようにした。 */
+    --app-max-width: min(100vw, 1400px);
     --section-tabs-top: 0px;
 }
 body { margin: 0; padding: 0; background-color: #666; font-family: sans-serif; display: flex; justify-content: center; }
@@ -574,8 +579,8 @@ body.app-touch .sketch-icon-btn-trash { bottom: 29px; }
                 <div id="help-spec" class="help-tab-content">
                 <div class="spec-container">
     <header class="spec-header">
-        <h2>被災状況調査システム 開発仕様書 (Phase 5.99)</h2>
-        <p><strong>Last Updated:</strong> Phase 5.99 (「開発方針」タブの表内min-width指定によりスマホ幅で横スクロールが発生していた問題を修正。「更新履歴」を「開発方針」タブから「更新」タブへ移動し、バージョンごとに開閉できるアコーディオン形式にした。Service Workerが更新確認リクエストをキャッシュから返してしまい、更新ボタンを2回押さないと最新版を検知できなかった不具合を修正)</p>
+        <h2>被災状況調査システム 開発仕様書 (Phase 6.00)</h2>
+        <p><strong>Last Updated:</strong> Phase 6.00 (iPhone実機で「開発方針」タブに横スクロールができてしまう不具合を修正。原因は--app-max-widthがclamp(480px, 100vw, 1400px)で下限480pxを指定していたため、画面幅が480px未満の端末では#app-container自体が常に480px幅に固定され画面全体が横スクロール可能になっていたこと。下限を撤廃しmin(100vw, 1400px)に変更した)</p>
         <span class="spec-status-badge">App A (Stable)</span>
     </header>
 
@@ -719,7 +724,7 @@ body.app-touch .sketch-icon-btn-trash { bottom: 29px; }
                 <div style="padding: 20px;">
                     <div style="padding: 15px; background: #e8f6f3; border: 1px solid #a2d9ce; border-radius: 4px;">
                         <p style="margin:0 0 10px 0; font-weight:bold; color: #16a085;">アプリ更新管理</p>
-                        <p style="margin:0 0 5px 0; font-size:0.9rem;">現在のバージョン: <strong id="current-version-display">Phase 5.99</strong></p>
+                        <p style="margin:0 0 5px 0; font-size:0.9rem;">現在のバージョン: <strong id="current-version-display">Phase 6.00</strong></p>
                         <div style="display:flex; align-items:center; gap:10px;">
                             <button id="update-app-btn" type="button" class="btn-main" style="width:auto; padding:8px 16px;" onclick="appControl.checkForUpdate()">更新を確認する</button>
                             <span id="update-status" style="font-size:0.9rem; color:#555;"></span>
@@ -728,6 +733,7 @@ body.app-touch .sketch-icon-btn-trash { bottom: 29px; }
 
                     <div style="margin-top: 20px;">
                         <p style="font-weight:bold; color:#2c3e50; margin-bottom:10px;">更新履歴</p>
+                        <details class="history-item"><summary>Phase 6.00</summary><p>Phase 5.99でテーブルのmin-widthを撤廃したにもかかわらず、iPhone実機では依然「開発方針」タブ全体に横スクロールができてしまう不具合が残っていた。原因はテーブルではなく、`--app-max-width: clamp(480px, 100vw, 1400px)`が下限480pxを指定していたこと。100vwが480px未満（iPhoneはほぼ全機種が該当）の場合でもclampの下限が効いて#app-containerが常に480px幅に固定され、画面全体が横スクロール可能になっていた。下限を撤廃し`min(100vw, 1400px)`に変更し、実際のビューポート幅に収まるようにした。</p></details>
                         <details class="history-item"><summary>Phase 5.99</summary><p>「開発方針」タブの表に`min-width:480px`を指定していたため、スマホ幅では常にテーブルが横スクロール状態になり「右側に余白があってスクロールしづらい」原因になっていた。min-widthを撤廃し`table-layout:fixed`と`word-break:break-word`でビューポート幅に収まるよう修正。また「更新履歴」を「開発方針」タブの表形式から、この「更新」タブの更新確認欄の下へ移動し、バージョンごとに開閉できるアコーディオン形式（デフォルト閉）にした。加えて、iPhoneで更新ボタンを押しても1回目は反応せず2回目でようやく更新される不具合を修正。原因はService Workerのstale-while-revalidateキャッシュが更新確認リクエスト（index.html?t=タイムスタンプ）にも古いキャッシュを即返してしまうことだったため、更新確認だけはキャッシュを一切使わず常にネットワークへ直接フェッチするようsw.jsを変更した。</p></details>
                         <details class="history-item"><summary>Phase 5.98</summary><p>sketchApp.saveToPhoto()（白紙メモを写真に保存）が、写真データに`lat`/`lng`/`gpsAccuracy`/`gpsFixed`/`azimuth`フィールドを一切含めておらず、位置図タブに位置情報付きマーカーとして表示されなかった。photoApp.handleCameraFile()と同じくgpsManager.getCurrentForPhoto()から現在地を取得して埋め込むよう修正（GPS未取得時はnullのまま、他の写真と同じ挙動）。</p></details>
                         <details class="history-item"><summary>Phase 5.97</summary><p>位置図⇄白紙メモのタブを往復するたびに白紙メモの「保存」「全消去」ボタンがどんどん下にずれて見えなくなる不具合を修正。原因は#app-containerが`min-height:100vh`（上限なし）だったこと。sketchApp.resizeAndClear()の高さ計算が#main-contentの実測下端を基準にしていたため、計算結果がわずかでも大きすぎるとページ全体が押し広げられ、次の計算がその膨らんだ状態を基準にしてしまい、雪だるま式に増大していた（往復5回でcanvas高さ491px→506px、ボタンが29px下にずれることを確認）。`height:100vh`に固定し、#main-contentのoverflow-y:autoが本来の設計どおり内部スクロールとして機能するようにしたところ、8回往復しても数値が完全に安定することを確認した。</p></details>
