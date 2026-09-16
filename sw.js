@@ -98,10 +98,17 @@ self.addEventListener('fetch', event => {
     // （キャッシュがあれば即返しつつ、裏で最新版を取得してキャッシュを更新する。
     //   Cache Firstだと更新後もオフラインになるまで古い版を返し続けてしまうため、
     //   オンライン中は常に裏で最新化されるこの方式にする。）
+    // 【重要】fetch(req)を素のまま呼ぶと、この裏取得のリクエスト自体がブラウザ自身の
+    // HTTPキャッシュ（GitHub Pages等が付与するCache-Controlによるもの）で解決されてしまい、
+    // ネットワークに一切出ずに古いレスポンスがそのままcache.put()されてしまうことがあった
+    // （＝更新ボタンでその場は最新表示になっても、次回起動時にタスクキル後は結局この
+    // stale-while-revalidateが拾った古いキャッシュに戻ってしまう不具合の原因）。
+    // {cache:'reload'}でブラウザのHTTPキャッシュを読み取り時だけ迂回し、必ずサーバーへ
+    // 到達させることで、裏取得が常に本当に最新の内容になるようにする。
     event.respondWith(
         caches.open(SHELL_CACHE).then(cache =>
             cache.match(req).then(cached => {
-                const network = fetch(req).then(res => {
+                const network = fetch(req, { cache: 'reload' }).then(res => {
                     if (res.ok) cache.put(req, res.clone());
                     return res;
                 }).catch(() => cached);
