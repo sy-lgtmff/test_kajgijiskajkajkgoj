@@ -20,7 +20,7 @@
             window.top.location = window.self.location.href;
         }
     </script>
-    <title>現場踏査写真管理アプリ(現場調査用) (Ver 6.14)</title>
+    <title>現場踏査写真管理アプリ(現場調査用) (Ver 6.15)</title>
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
     <link rel="apple-touch-icon" href="icon-192.png">
@@ -543,16 +543,16 @@ body.app-touch .sketch-icon-btn-trash { bottom: 29px; }
                 <div style="padding: 20px;">
                     <div style="padding: 15px; background: #e8f6f3; border: 1px solid #a2d9ce; border-radius: 4px;">
                         <p style="margin:0 0 10px 0; font-weight:bold; color: #16a085;">アプリ更新管理</p>
-                        <p style="margin:0 0 5px 0; font-size:0.9rem;">現在のバージョン: <strong id="current-version-display">Ver 6.14</strong></p>
-                        <div style="display:flex; align-items:center; gap:10px;">
-                            <button id="update-app-btn" type="button" class="btn-main" style="width:110px; padding:8px; text-align:center; line-height:1.3;" onclick="appControl.checkForUpdate()">更新</button>
-                            <button id="hard-reset-btn" type="button" style="width:110px; padding:8px; text-align:center; line-height:1.3; background:#e67e22; color:#fff; border:none; border-radius:4px; font-weight:bold; cursor:pointer;" onclick="appControl.hardResetUpdate()">更新<br>(キャッシュ削除)</button>
-                            <span id="update-status" style="font-size:0.9rem; color:#555;"></span>
+                        <p style="margin:0 0 5px 0; font-size:0.9rem;">現在のバージョン: <strong id="current-version-display">Ver 6.15</strong></p>
+                        <div style="display:flex; gap:10px;">
+                            <button id="update-app-btn" type="button" class="btn-main" style="flex:1; padding:8px; text-align:center; line-height:1.3;" onclick="appControl.checkForUpdate()">更新</button>
+                            <button id="hard-reset-btn" type="button" style="flex:1; padding:8px; text-align:center; line-height:1.3; background:#e67e22; color:#fff; border:none; border-radius:4px; font-weight:bold; cursor:pointer;" onclick="appControl.hardResetUpdate()">更新<br>(キャッシュ削除)</button>
                         </div>
                     </div>
 
                     <div style="margin-top: 20px;">
                         <p style="font-weight:bold; color:#2c3e50; margin-bottom:10px;">更新履歴</p>
+                        <details class="history-item"><summary>Ver 6.15</summary><p>更新タブの「更新」「更新(キャッシュ削除)」ボタンをwidth:auto/固定pxからflex:1に変更し、常に同じ幅で画面幅いっぱいに横並び表示されるようにした。また常時表示していた#update-statusのステータステキスト（「確認中...」「最新です。」等）を廃止し、すべてトースト通知（uiHelper.showToast）のみで表示するよう統一した（エラー時のalert()は従来通り）。</p></details>
                         <details class="history-item"><summary>Ver 6.14</summary><p>更新タブの補足説明文（「更新で直らない場合はキャッシュを削除して更新をお試しください…」）を削除した。同じ内容は「キャッシュを削除して更新」ボタン押下時の確認ポップアップに既に表示されるため、常時表示は重複だった。</p></details>
                         <details class="history-item"><summary>Ver 6.13</summary><p>「キャッシュを削除して更新」ボタンのラベルを「更新」「(キャッシュ削除)」の2行表示に短縮し、両ボタンの幅を110pxまで縮めることで、スマホ幅でも折り返さず横並びのまま収まるようにした。</p></details>
                         <details class="history-item"><summary>Ver 6.12</summary><p>「更新」ボタンと「キャッシュを削除して更新」ボタンの幅を揃えた（それぞれwidth:210pxに固定）。文字数が大きく異なるため、width:autoのままだと片方だけ極端に小さくなっていた。</p></details>
@@ -5305,9 +5305,8 @@ window.appControl = {
     },
     checkForUpdate() {
         const btn = document.getElementById('update-app-btn');
-        const status = document.getElementById('update-status');
         if (btn) btn.disabled = true;
-        if (status) status.textContent = "確認中...";
+        uiHelper.showToast("更新を確認しています...");
 
         const targetUrl = 'index.html?t=' + new Date().getTime();
 
@@ -5319,7 +5318,6 @@ window.appControl = {
                 const currentPhase = document.getElementById('current-version-display').textContent;
 
                 if (serverPhase && serverPhase !== currentPhase) {
-                    if (status) status.textContent = `新しいバージョン (${serverPhase}) があります。`;
                     if (confirm(`新しいバージョン (${serverPhase}) が見つかりました。\n更新しますか？`)) {
                         const applyUpdate = () => {
                             if ('serviceWorker' in navigator) {
@@ -5354,12 +5352,10 @@ window.appControl = {
                         }
                     }
                 } else {
-                    if (status) status.textContent = "最新です。";
                     uiHelper.showToast("最新バージョンです");
                 }
             })
             .catch(err => {
-                if (status) status.textContent = "確認失敗";
                 alert("更新確認に失敗しました。\n・通信環境を確認してください\n・ファイル名が index.html であることを確認してください");
                 console.error(err);
             })
@@ -5377,9 +5373,8 @@ window.appControl = {
         if (!confirm("キャッシュを全て削除して最新版を再取得します。\n保存済みのオフライン地図タイルも削除されます（再表示時に読み込み直します）。\n入力中のデータは消えません。\n\nよろしいですか？")) return;
 
         const hardBtn = document.getElementById('hard-reset-btn');
-        const status = document.getElementById('update-status');
         if (hardBtn) hardBtn.disabled = true;
-        if (status) status.textContent = "キャッシュを削除中...";
+        uiHelper.showToast("キャッシュを削除しています...");
 
         try {
             if ('serviceWorker' in navigator) {
