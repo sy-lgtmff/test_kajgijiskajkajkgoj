@@ -425,13 +425,6 @@ body.app-touch .sketch-icon-btn-trash { bottom: 29px; }
                         <input type="checkbox" id="photo-force-43" style="width:18px; height:18px;" checked>
                         強制的に4:3にする（右側をカット）
                     </label>
-                    <!-- カメラロール保存：撮影直後にOS標準の共有シートを開き「イメージを保存」で
-                         カメラロールにも保存できるようにする（Web Share API。ブラウザの仕様上、
-                         完全な自動保存はできず共有シートでの一手間が必要）。 -->
-                    <label style="display:flex; align-items:center; gap:8px; font-size:0.85rem; color:#333; cursor:pointer;">
-                        <input type="checkbox" id="photo-save-to-roll" style="width:18px; height:18px;" checked>
-                        撮影時にカメラロールにも保存する
-                    </label>
                 </div>
 
             </div>
@@ -4407,17 +4400,7 @@ window.photoApp = {
         const targetW = this._getResizeWidth();
         const force43 = this._getForce43();
         const gps = gpsManager.getCurrentForPhoto();
-        const saveToRoll = this._getSaveToCameraRoll();
         const files = Array.from(input.files);
-
-        // 【重要】navigator.share()はユーザー操作起点（トランジェントアクティベーション）が
-        // 必要で、この起点はごく短時間で失効する。resizeImage()のawait（FileReader読み込み・
-        // Imageデコード）を先に挟むとその間に起点が失効し、共有シートが開かなくなる
-        // （＝カメラロールに保存されない不具合の原因）。そのためリサイズより前、
-        // change イベント発火直後の同期実行区間で真っ先に共有を呼び出す。
-        if (saveToRoll) {
-            files.forEach(file => this._saveToCameraRoll(file, { auto: true }));
-        }
 
         for (const file of files) {
             const d = await this.resizeImage(file, targetW, force43);
@@ -4436,16 +4419,9 @@ window.photoApp = {
         input.value = "";
     },
 
-    // カメラロール保存設定の状態を取得
-    _getSaveToCameraRoll() {
-        const cb = document.getElementById('photo-save-to-roll');
-        return cb ? cb.checked : true;
-    },
-
     // ---- 写真ツールバーの「📥 保存」ボタン：表示中の写真を手動でカメラロールへ共有する ----
-    // 【重要】撮影直後の自動保存（change イベント経由）は端末によってはユーザー操作起点が
-    // 伴わずnavigator.share()が必ず失敗することを確認したため、このボタンを用意した。
-    // ボタンの直接タップから呼ばれるため、常に新鮮な操作起点を伴い確実に動作する。
+    // 【重要】ボタンの直接タップから呼ばれるため、navigator.share()に必要なユーザー操作起点
+    // （トランジェントアクティベーション）を確実に伴う。
     async saveCurrentPhotoToCameraRoll(btn) {
         const p = this.photos[this.currentIndex];
         if (!p) { window.uiHelper && uiHelper.showToast("写真が選択されていません"); return; }
@@ -4460,38 +4436,25 @@ window.photoApp = {
         }
     },
 
-    // ---- 撮影した元画像（リサイズ前）をカメラロールにも保存する ----
+    // ---- 表示中の写真をカメラロールにも保存する（「📥 保存」ボタンからのみ呼ばれる） ----
     // 【重要】iOSのSafariでは、<input capture>で撮影した写真はWebページに渡されるだけで
     // カメラロールへは自動保存されない仕様（プライバシー上、Webページが無断で写真アプリに
     // 書き込むAPIは存在しない）。唯一の方法はWeb Share API（navigator.share）でOS標準の
     // 共有シートを開き、ユーザー自身に「イメージを保存」をタップしてもらうこと。
-    // そのため完全な自動・無音保存は不可能で、撮影ごとに共有シートが開き一手間かかる点に注意。
     // 共有をサポートしない環境（PC等）では何もしない（機能自体が使えないだけで、エラーにはしない）。
-    // opts.auto=true: 撮影直後の自動保存からの呼び出し（handleCameraFile経由）。
-    // 【重要判明事項】iOS実機で、カメラ撮影後のinput[change]イベント経由だと
-    // navigator.share()に必要なユーザー操作起点（トランジェントアクティベーション）が
-    // 端末によっては全く伴っておらず（呼び出し順序を直しても改善しなかった）、
-    // 必ず失敗する場合があることを確認した。そのため自動保存はあくまでベストエフォートとし、
-    // 失敗時は「📥保存」ボタン（saveCurrentPhotoToCameraRoll、直接のタップから呼ばれるため
-    // 確実に動作する）を使うよう案内する。
-    async _saveToCameraRoll(file, opts = {}) {
-        const auto = !!opts.auto;
+    async _saveToCameraRoll(file) {
         if (!navigator.share || !navigator.canShare || !navigator.canShare({ files: [file] })) {
-            window.uiHelper && uiHelper.showToast(auto
-                ? "自動保存はこの端末では使えません。写真の「📥保存」ボタンをお使いください"
-                : "この端末では画像の共有に対応していません");
+            window.uiHelper && uiHelper.showToast("この端末では画像の共有に対応していません");
             return;
         }
         try {
             await navigator.share({ files: [file] });
-            if (!auto) window.uiHelper && uiHelper.showToast("共有シートを開きました");
+            window.uiHelper && uiHelper.showToast("共有シートを開きました");
         } catch (e) {
             // AbortError: ユーザーが共有シートをキャンセルした場合。想定内の操作なので何もしない。
             if (e.name === 'AbortError') return;
             console.warn("カメラロールへの共有に失敗", e);
-            window.uiHelper && uiHelper.showToast(auto
-                ? "自動保存に失敗しました。写真の「📥保存」ボタンから保存してください"
-                : `保存に失敗しました: ${e.name || e.message}`);
+            window.uiHelper && uiHelper.showToast(`保存に失敗しました: ${e.name || e.message}`);
         }
     },
 
@@ -5410,8 +5373,6 @@ window.appControl = {
         if (resizeSel) d.photo_resize_width = resizeSel.value;
         const force43cb = document.getElementById('photo-force-43');
         if (force43cb) d.photo_force_43 = force43cb.checked;
-        const saveToRollCb = document.getElementById('photo-save-to-roll');
-        if (saveToRollCb) d.photo_save_to_roll = saveToRollCb.checked;
         try {
             localStorage.setItem(DEFAULTS_KEY, JSON.stringify(d));
             window.uiHelper && uiHelper.showToast("初期値を保存しました");
@@ -5517,10 +5478,6 @@ window.appControl = {
             if (d.photo_force_43 !== undefined) {
                 const el = document.getElementById('photo-force-43');
                 if (el) el.checked = d.photo_force_43;
-            }
-            if (d.photo_save_to_roll !== undefined) {
-                const el = document.getElementById('photo-save-to-roll');
-                if (el) el.checked = d.photo_save_to_roll;
             }
         } catch(e) { console.warn("loadDefaults failed:", e); }
     },
