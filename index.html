@@ -20,7 +20,7 @@
             window.top.location = window.self.location.href;
         }
     </script>
-    <title>現場踏査写真管理アプリ(現場調査用) (Ver 6.15)</title>
+    <title>現場踏査写真管理アプリ(現場調査用) (Ver 6.16)</title>
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
     <link rel="apple-touch-icon" href="icon-192.png">
@@ -185,7 +185,17 @@ body { margin: 0; padding: 0; background-color: #666; font-family: sans-serif; d
 .sketch-btn { padding: 6px 10px; border: 1px solid #ccc; background: #f9f9f9; border-radius: 3px; cursor: pointer; font-size: 0.8rem; font-weight: bold; }
 .sketch-btn.active { background: var(--accent-color); color: white; border-color: #2980b9; }
 /* モード切替ボタン（位置図タブ内）の非アクティブ時はダーク背景 */
-#mode-btn-map:not(.active), #mode-btn-draw:not(.active), #mode-btn-sketch:not(.active) { background: rgba(255,255,255,0.1); }
+#mode-btn-map:not(.active), #mode-btn-memo:not(.active), #mode-btn-draw:not(.active), #mode-btn-sketch:not(.active) { background: rgba(255,255,255,0.1); }
+/* 位置図「メモ一覧」モード：地図の下に表示する地図メモの一覧（PC版で作成しJZIPで受け取ったもの） */
+#memo-list-container { height: 34vh; overflow-y: auto; background: #f4f7f6; border-top: 2px solid #2c3e50; -webkit-overflow-scrolling: touch; }
+.memo-row { display: flex; align-items: flex-start; gap: 8px; padding: 10px 12px; border-bottom: 1px solid #e0e0e0; background: #fff; }
+.memo-row.confirmed { opacity: 0.5; }
+.memo-badge { width: 26px; height: 26px; flex-shrink: 0; border-radius: 50%; border: 2px solid #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.4); color: #fff; font-size: 12px; font-weight: bold; display: flex; align-items: center; justify-content: center; }
+.memo-body { flex: 1; min-width: 0; }
+.memo-tag { display: inline-block; font-size: 0.7rem; font-weight: bold; padding: 1px 6px; border-radius: 3px; color: #fff; margin-bottom: 3px; }
+.memo-text { font-size: 0.85rem; white-space: pre-wrap; word-break: break-word; color: #333; }
+.memo-confirm-btn { flex-shrink: 0; padding: 6px 10px; border: none; border-radius: 4px; background: #27ae60; color: #fff; font-size: 0.75rem; font-weight: bold; cursor: pointer; }
+.memo-row.confirmed .memo-confirm-btn { background: #95a5a6; }
 .color-btn { width: 24px; height: 24px; border-radius: 50%; border: 2px solid #fff; box-shadow: 0 0 3px rgba(0,0,0,0.3); padding: 0; cursor: pointer; }
 .color-btn.active { transform: scale(1.2); border-color: #333; box-shadow: 0 0 5px rgba(0,0,0,0.5); }
 .sketch-canvas-container { position: relative; box-shadow: 0 2px 5px rgba(0,0,0,0.1); background: white; cursor: crosshair; touch-action: none; margin-bottom: 5px; }
@@ -272,11 +282,14 @@ body.app-touch .sketch-icon-btn-trash { bottom: 29px; }
                     style="background:rgba(255,255,255,0.25); border:1px solid white; color:white; padding:4px 12px; border-radius:4px; font-size:0.8rem; cursor:pointer;"
                     onclick="mapApp.cancelGpsFixMode(); photoApp._restorePhotoTab();">キャンセル</button>
             </div>
-            <!-- モード切替：メイン・サブ・白紙メモの3モード -->
+            <!-- モード切替：メイン・メモ一覧・サブ・白紙メモの4モード -->
             <div style="display:flex; background:#444; color:white; font-size:0.8rem;">
                 <button id="mode-btn-map" class="sketch-btn active"
                     style="flex:1; padding:10px; border:none; border-right:1px solid #666; color:white; font-size:0.8rem;"
                     onclick="uiHelper.switchMapMode('map')">メイン(位置)</button>
+                <button id="mode-btn-memo" class="sketch-btn"
+                    style="flex:1; padding:10px; border:none; border-right:1px solid #666; color:white; font-size:0.8rem;"
+                    onclick="uiHelper.switchMapMode('memo')">メモ一覧</button>
                 <button id="mode-btn-draw" class="sketch-btn"
                     style="flex:1; padding:10px; border:none; border-right:1px solid #666; color:white; font-size:0.8rem;"
                     onclick="uiHelper.switchMapMode('draw')">サブ(落書き)</button>
@@ -288,6 +301,8 @@ body.app-touch .sketch-icon-btn-trash { bottom: 29px; }
             <div id="map-container">
                 <div id="map" style="height: 55vh; width: 100%;"></div>
             </div>
+            <!-- 地図メモ一覧（「メモ一覧」モードのときだけ地図の下に表示） -->
+            <div id="memo-list-container" style="display:none;"></div>
             <!-- 白紙メモエリア -->
             <div id="sketch-container" style="display:none;">
                 <div class="sketch-toolbar">
@@ -536,7 +551,7 @@ body.app-touch .sketch-icon-btn-trash { bottom: 29px; }
                 <div style="padding: 20px;">
                     <div style="padding: 15px; background: #e8f6f3; border: 1px solid #a2d9ce; border-radius: 4px;">
                         <p style="margin:0 0 10px 0; font-weight:bold; color: #16a085;">アプリ更新管理</p>
-                        <p style="margin:0 0 5px 0; font-size:0.9rem;">現在のバージョン: <strong id="current-version-display">Ver 6.15</strong></p>
+                        <p style="margin:0 0 5px 0; font-size:0.9rem;">現在のバージョン: <strong id="current-version-display">Ver 6.16</strong></p>
                         <div style="display:flex; gap:10px;">
                             <button id="update-app-btn" type="button" class="btn-main" style="flex:1; padding:8px; text-align:center; line-height:1.3;" onclick="appControl.checkForUpdate()">更新</button>
                             <button id="hard-reset-btn" type="button" style="flex:1; padding:8px; text-align:center; line-height:1.3; background:#e67e22; color:#fff; border:none; border-radius:4px; font-weight:bold; cursor:pointer;" onclick="appControl.hardResetUpdate()">更新<br>(キャッシュ削除)</button>
@@ -545,6 +560,7 @@ body.app-touch .sketch-icon-btn-trash { bottom: 29px; }
 
                     <div style="margin-top: 20px;">
                         <p style="font-weight:bold; color:#2c3e50; margin-bottom:10px;">更新履歴</p>
+                        <details class="history-item"><summary>Ver 6.16</summary><p>位置図タブに「メモ一覧」モードを追加（「メイン(位置)」の隣）。PC版アプリで取込箇所ごとに作成した地図メモ（タグ「メモ」「未撮影」）をJZIP（survey_data.jsonのmapMemos）で受け取り、地図上に番号付きの丸（タグで色分け：メモ=青、未撮影=赤）で表示し、地図の下に一覧を表示する。一覧の「確認済み」を押すとそのメモは地図から消え、一覧では淡色表示になる（「戻す」で未確認に戻せる）。確認状態はオートセーブ・JZIP保存に含まれ、PC版へそのまま返せる。タブには未確認件数を表示。また、PC版で設定した写真の地図表示オンオフ（photoListのmapHidden）を、読込・オートセーブ・JZIP保存で失わず引き継ぐようにした。</p></details>
                         <details class="history-item"><summary>Ver 6.15</summary><p>更新タブの「更新」「更新(キャッシュ削除)」ボタンをwidth:auto/固定pxからflex:1に変更し、常に同じ幅で画面幅いっぱいに横並び表示されるようにした。また常時表示していた#update-statusのステータステキスト（「確認中...」「最新です。」等）を廃止し、すべてトースト通知（uiHelper.showToast）のみで表示するよう統一した（エラー時のalert()は従来通り）。</p></details>
                         <details class="history-item"><summary>Ver 6.14</summary><p>更新タブの補足説明文（「更新で直らない場合はキャッシュを削除して更新をお試しください…」）を削除した。同じ内容は「キャッシュを削除して更新」ボタン押下時の確認ポップアップに既に表示されるため、常時表示は重複だった。</p></details>
                         <details class="history-item"><summary>Ver 6.13</summary><p>「キャッシュを削除して更新」ボタンのラベルを「更新」「(キャッシュ削除)」の2行表示に短縮し、両ボタンの幅を110pxまで縮めることで、スマホ幅でも折り返さず横並びのまま収まるようにした。</p></details>
@@ -3198,6 +3214,7 @@ window.mapApp = {
         L.control.layers(layers).addTo(this.map);
         this.allDrawnItems = new L.FeatureGroup().addTo(this.map);
         this.photoLayerGroup = new L.LayerGroup().addTo(this.map);
+        this.memoLayerGroup = new L.LayerGroup().addTo(this.map);
 
         this.setMode('main');
         
@@ -3654,7 +3671,10 @@ window.mapApp = {
         // 地図の下に専有スペースを取る要素が無くなったため、差し引く高さは不要になった。
         const mainBottom = mainContent.getBoundingClientRect().bottom;
         const mapTop = mapEl.getBoundingClientRect().top;
-        const available = Math.round(mainBottom - mapTop);
+        // 「メモ一覧」モードでは地図の下にメモ一覧（固定高さ）が並ぶので、その分を差し引く
+        const memoList = document.getElementById('memo-list-container');
+        const memoListH = (memoList && memoList.style.display !== 'none') ? memoList.offsetHeight : 0;
+        const available = Math.round(mainBottom - mapTop - memoListH);
 
         if (available > 200) {
             mapEl.style.height = available + 'px';
@@ -4821,6 +4841,7 @@ window.uiHelper = {
         if (group === 'map-area') {
             window.mapApp.init();
             window.mapApp.renderPhotoMarkers();
+            window.memoApp && memoApp.renderMarkers();
             const activeBtn = document.querySelector('.map-mode-selector .sketch-btn.active');
             const mode = activeBtn ? activeBtn.id.replace('mode-btn-', '') : 'map';
             this.switchMapMode(mode);
@@ -4895,11 +4916,13 @@ window.uiHelper = {
     switchMapMode(mode) {
         const mapContainer = document.getElementById('map-container');
         const sketchContainer = document.getElementById('sketch-container');
+        const memoList = document.getElementById('memo-list-container');
         if (!mapContainer || !sketchContainer) return;
-        ['map', 'draw', 'sketch'].forEach(m => {
+        ['map', 'memo', 'draw', 'sketch'].forEach(m => {
             const btn = document.getElementById('mode-btn-' + m);
             if(btn) btn.classList.toggle('active', m === mode);
         });
+        if (memoList) memoList.style.display = (mode === 'memo') ? 'block' : 'none';
         if (mode === 'sketch') {
             mapContainer.style.display = 'none';
             sketchContainer.style.display = 'block';
@@ -4907,8 +4930,9 @@ window.uiHelper = {
         } else {
             mapContainer.style.display = 'block';
             sketchContainer.style.display = 'none';
+            if (mode === 'memo' && window.memoApp) memoApp.render();
             if(window.mapApp && window.mapApp.map) {
-                window.mapApp.setMode(mode === 'map' ? 'main' : 'sub');
+                window.mapApp.setMode(mode === 'draw' ? 'sub' : 'main');
                 setTimeout(() => { if (mapApp.map) mapApp.fitMapHeight(); }, 100);
             }
         }
@@ -5020,6 +5044,133 @@ window.presetManager = {
 };
 
 // --- オートセーブ ---
+// =============================================================================
+// 地図メモ (memoApp)
+// =============================================================================
+// PC版アプリで取込箇所ごとに作成された地図メモ（survey_data.jsonのmapMemos）を、
+// JZIP読込時に受け取って位置図に番号付きで表示する。iPhone側では閲覧と「確認済み」の
+// 切替のみ行い、確認済みにしたメモは地図から消える（一覧では淡色で残り、戻すことも可能）。
+// 状態はオートセーブ・JZIP保存に含まれるため、PC版へそのまま返せる。
+// 各要素: { id, lat, lng, text, tag, confirmed }
+window.memoApp = {
+    memos: [],
+    TAG_COLORS: { 'メモ': '#2980b9', '未撮影': '#c0392b' },
+    _markers: [],
+
+    setMemos(list) {
+        this.memos = Array.isArray(list) ? list : [];
+        this.render();
+    },
+
+    render() {
+        this.renderMarkers();
+        this.renderList();
+        this.updateTabLabel();
+    },
+
+    _color(tag) { return this.TAG_COLORS[tag] || '#7f8c8d'; },
+
+    updateTabLabel() {
+        const btn = document.getElementById('mode-btn-memo');
+        if (!btn) return;
+        const open = this.memos.filter(m => !m.confirmed).length;
+        btn.textContent = open > 0 ? `メモ一覧(${open})` : 'メモ一覧';
+    },
+
+    // 写真マーカーと同じ「番号入りの丸」。色はタグで塗り分ける（PC版と同じ配色）。
+    _iconSVG(number, tag) {
+        return `<svg width="30" height="30" viewBox="0 0 30 30">` +
+            `<circle cx="15" cy="15" r="12" fill="${this._color(tag)}" stroke="#fff" stroke-width="3"/>` +
+            `<text x="15" y="19" text-anchor="middle" font-size="12" fill="#fff" font-weight="bold">${number}</text>` +
+            `</svg>`;
+    },
+
+    renderMarkers() {
+        if (!window.mapApp || !mapApp.map || !mapApp.memoLayerGroup) return;
+        mapApp.memoLayerGroup.clearLayers();
+        this._markers = [];
+        this.memos.forEach((m, i) => {
+            if (m.confirmed) return;
+            const lat = parseFloat(m.lat), lng = parseFloat(m.lng);
+            if (!isFinite(lat) || !isFinite(lng)) return;
+            const marker = L.marker([lat, lng], {
+                icon: L.divIcon({ html: this._iconSVG(i + 1, m.tag), className: 'memo-marker-icon', iconSize: [30, 30], iconAnchor: [15, 15] })
+            }).addTo(mapApp.memoLayerGroup);
+            const pop = document.createElement('div');
+            const head = document.createElement('div');
+            head.style.cssText = 'font-weight:bold; font-size:0.8rem; margin-bottom:3px;';
+            head.textContent = `メモ ${i + 1}（${m.tag || ''}）`;
+            const body = document.createElement('div');
+            body.style.cssText = 'font-size:0.8rem; white-space:pre-wrap; max-width:200px;';
+            body.textContent = m.text || '（本文なし）';
+            pop.appendChild(head); pop.appendChild(body);
+            marker.bindPopup(pop);
+            this._markers[i] = marker;
+        });
+    },
+
+    renderList() {
+        const box = document.getElementById('memo-list-container');
+        if (!box) return;
+        box.innerHTML = '';
+        if (this.memos.length === 0) {
+            const empty = document.createElement('div');
+            empty.style.cssText = 'padding:20px; color:#888; font-size:0.85rem; text-align:center; line-height:1.7;';
+            empty.textContent = '地図メモはありません。PC版アプリで地図メモを作成したJZIPを読み込むと、ここに表示されます。';
+            box.appendChild(empty);
+            return;
+        }
+        this.memos.forEach((m, i) => {
+            const row = document.createElement('div');
+            row.className = 'memo-row' + (m.confirmed ? ' confirmed' : '');
+
+            const badge = document.createElement('div');
+            badge.className = 'memo-badge';
+            badge.style.background = this._color(m.tag);
+            badge.textContent = i + 1;
+            row.appendChild(badge);
+
+            const body = document.createElement('div');
+            body.className = 'memo-body';
+            const tag = document.createElement('span');
+            tag.className = 'memo-tag';
+            tag.style.background = this._color(m.tag);
+            tag.textContent = m.tag || '';
+            const text = document.createElement('div');
+            text.className = 'memo-text';
+            text.textContent = m.text || '（本文なし）';
+            body.appendChild(tag); body.appendChild(text);
+            body.onclick = () => this.focus(i);
+            row.appendChild(body);
+
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'memo-confirm-btn';
+            btn.textContent = m.confirmed ? '戻す' : '確認済み';
+            btn.onclick = () => this.setConfirmed(i, !m.confirmed);
+            row.appendChild(btn);
+
+            box.appendChild(row);
+        });
+    },
+
+    setConfirmed(i, confirmed) {
+        const m = this.memos[i];
+        if (!m) return;
+        m.confirmed = confirmed;
+        this.render();
+        window.storageManager && storageManager.save();
+        window.uiHelper && uiHelper.showToast(confirmed ? `メモ ${i + 1} を確認済みにしました` : `メモ ${i + 1} を未確認に戻しました`);
+    },
+
+    focus(i) {
+        const marker = this._markers[i];
+        if (!marker || !mapApp.map) return;
+        mapApp.map.panTo(marker.getLatLng());
+        marker.openPopup();
+    }
+};
+
 window.storageManager = {
     KEY: 'survey_app_autosave',
     save() {
@@ -5036,9 +5187,11 @@ window.storageManager = {
                     azimuth:     p.azimuth     ?? null,
                     lat:         p.lat         ?? null,
                     lng:         p.lng         ?? null,
-                    gpsAccuracy: p.gpsAccuracy ?? null
+                    gpsAccuracy: p.gpsAccuracy ?? null,
+                    mapHidden:   !!p.mapHidden
                     // dataUrlは保存しない
                 }));
+                data.mapMemos = window.memoApp ? memoApp.memos : [];
                 localStorage.setItem(this.KEY, JSON.stringify(data));
             } catch (e) { console.warn("Auto-save failed:", e); }
         }, 500);
@@ -5074,12 +5227,14 @@ window.storageManager = {
                     azimuth:     p.azimuth     ?? null,
                     lat:         p.lat         ?? null,
                     lng:         p.lng         ?? null,
-                    gpsAccuracy: p.gpsAccuracy ?? null
+                    gpsAccuracy: p.gpsAccuracy ?? null,
+                    mapHidden:   !!p.mapHidden
                 }));
                 window.photoApp.currentIndex = 0;
                 window.photoApp.render();
                 window.photoApp.updateHeaderSummary();
             }
+            window.memoApp && memoApp.setMemos(json.mapMemos);
         } catch (e) { console.error("Auto-load failed", e); }
     }
 };
@@ -5139,9 +5294,11 @@ window.appControl = {
                 azimuth:     p.azimuth     ?? null,
                 lat:         p.lat         ?? null,
                 lng:         p.lng         ?? null,
-                gpsAccuracy: p.gpsAccuracy ?? null
+                gpsAccuracy: p.gpsAccuracy ?? null,
+                mapHidden:   !!p.mapHidden
             };
         });
+        d.mapMemos = window.memoApp ? memoApp.memos : [];
 
         zip.file("survey_data.json", JSON.stringify(d, null, 2));
         zip.generateAsync({ type: "blob" }).then(blob => {
@@ -5233,10 +5390,12 @@ window.appControl = {
                     azimuth:     p.azimuth     ?? null,
                     lat:         p.lat         ?? null,
                     lng:         p.lng         ?? null,
-                    gpsAccuracy: p.gpsAccuracy ?? null
+                    gpsAccuracy: p.gpsAccuracy ?? null,
+                    mapHidden:   !!p.mapHidden
                 });
             }
-            photoApp.currentIndex = 0; photoApp.render(); photoApp.updateHeaderSummary(); 
+            memoApp.setMemos(json.mapMemos);
+            photoApp.currentIndex = 0; photoApp.render(); photoApp.updateHeaderSummary();
             storageManager.save(); 
             uiHelper.showToast("インポート完了");
         });
@@ -5252,6 +5411,7 @@ window.appControl = {
             if(sel) sel.value = defaults[i-1];
         }
         mapApp.init(); mapApp.allDrawnItems.clearLayers(); mapApp.updateMapSummary();
+        memoApp.setMemos([]);
         photoApp.photos = []; photoApp.currentIndex = -1; photoApp.render(); photoApp.updateHeaderSummary();
         // 【修正】画面上の写真一覧は空にしていたが、IndexedDB(photoStorage)側の
         // 写真データを削除していなかったため、前回調査の写真が消えずに残り続けていた。
@@ -5410,6 +5570,7 @@ window.appControl = {
             mapApp.allDrawnItems.clearLayers();
             mapApp.updateMapSummary();
         }
+        window.memoApp && memoApp.setMemos([]);
 
         // 白紙メモクリア
         if (window.sketchApp && sketchApp.ctx) {
