@@ -20,7 +20,7 @@
             window.top.location = window.self.location.href;
         }
     </script>
-    <title>現場踏査写真管理アプリ(現場調査用) (Ver 6.17)</title>
+    <title>現場踏査写真管理アプリ(現場調査用) (Ver 6.18)</title>
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
     <link rel="apple-touch-icon" href="icon-192.png">
@@ -551,7 +551,7 @@ body.app-touch .sketch-icon-btn-trash { bottom: 29px; }
                 <div style="padding: 20px;">
                     <div style="padding: 15px; background: #e8f6f3; border: 1px solid #a2d9ce; border-radius: 4px;">
                         <p style="margin:0 0 10px 0; font-weight:bold; color: #16a085;">アプリ更新管理</p>
-                        <p style="margin:0 0 5px 0; font-size:0.9rem;">現在のバージョン: <strong id="current-version-display">Ver 6.17</strong></p>
+                        <p style="margin:0 0 5px 0; font-size:0.9rem;">現在のバージョン: <strong id="current-version-display">Ver 6.18</strong></p>
                         <div style="display:flex; gap:10px;">
                             <button id="update-app-btn" type="button" class="btn-main" style="flex:1; padding:8px; text-align:center; line-height:1.3;" onclick="appControl.checkForUpdate()">更新</button>
                             <button id="hard-reset-btn" type="button" style="flex:1; padding:8px; text-align:center; line-height:1.3; background:#e67e22; color:#fff; border:none; border-radius:4px; font-weight:bold; cursor:pointer;" onclick="appControl.hardResetUpdate()">更新<br>(キャッシュ削除)</button>
@@ -560,6 +560,7 @@ body.app-touch .sketch-icon-btn-trash { bottom: 29px; }
 
                     <div style="margin-top: 20px;">
                         <p style="font-weight:bold; color:#2c3e50; margin-bottom:10px;">更新履歴</p>
+                        <details class="history-item"><summary>Ver 6.18</summary><p>JZIP読込時、この端末に入力済みの管理項目がファイルの内容で変わってしまう場合に、取り込み方法を選ぶダイアログ（#modal-import-fields）を表示するようにした。「上書き」＝ファイルの内容に置き換える（ファイルで空欄の項目は空になる）、「統合」＝ファイルに入力がある項目だけ置き換え空欄はこの端末の値を残す、「この端末の入力を残す」＝管理項目は変更せず地図メモ等だけ取り込む、「キャンセル」＝何も取り込まない。ダイアログには変わる項目の一覧（現在値→ファイルの値）を表示する。端末側が空欄のみ、またはファイルと同じ内容のときはダイアログを出さずにそのまま取り込む。対象は管理項目タブの項目のみで、写真・位置図形・地図メモの扱いは従来通り。あわせて、キャンセル後に同じファイルを選び直しても読込が動くようファイル選択をリセットするようにした。</p></details>
                         <details class="history-item"><summary>Ver 6.17</summary><p>PC版の「メモ・管理項目のみ出力」で作ったJZIP（写真・位置図形を含まない）を読み込めるようにした。JZIP読込（importZip）は、ファイルにphotoListが無ければ既存の写真を、mainGeom/subGeomが無ければ既存の位置図形を消さずに残し、ファイルに含まれる管理項目と地図メモだけを上書きする（従来はphotoListが無いと読込自体がエラーになっていた）。</p></details>
                         <details class="history-item"><summary>Ver 6.16</summary><p>位置図タブに「メモ一覧」モードを追加（「メイン(位置)」の隣）。PC版アプリで取込箇所ごとに作成した地図メモ（タグ「メモ」「未撮影」）をJZIP（survey_data.jsonのmapMemos）で受け取り、地図上に番号付きの丸（タグで色分け：メモ=青、未撮影=赤）で表示し、地図の下に一覧を表示する。一覧の「確認済み」を押すとそのメモは地図から消え、一覧では淡色表示になる（「戻す」で未確認に戻せる）。確認状態はオートセーブ・JZIP保存に含まれ、PC版へそのまま返せる。タブには未確認件数を表示。また、PC版で設定した写真の地図表示オンオフ（photoListのmapHidden）を、読込・オートセーブ・JZIP保存で失わず引き継ぐようにした。</p></details>
                         <details class="history-item"><summary>Ver 6.15</summary><p>更新タブの「更新」「更新(キャッシュ削除)」ボタンをwidth:auto/固定pxからflex:1に変更し、常に同じ幅で画面幅いっぱいに横並び表示されるようにした。また常時表示していた#update-statusのステータステキスト（「確認中...」「最新です。」等）を廃止し、すべてトースト通知（uiHelper.showToast）のみで表示するよう統一した（エラー時のalert()は従来通り）。</p></details>
@@ -642,6 +643,21 @@ body.app-touch .sketch-icon-btn-trash { bottom: 29px; }
             <div class="custom-modal-actions">
                 <button type="button" class="btn-sub" onclick="window.uiHelper.cancelMapTextInput()">キャンセル</button>
                 <button type="button" class="btn-main" onclick="window.uiHelper.confirmMapTextInput()">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- JZIP読込時の管理項目の取り込み方法選択（iPhone側に既存の入力があり、ファイルと食い違う場合のみ表示） -->
+    <div id="modal-import-fields" class="custom-modal-overlay">
+        <div class="custom-modal-box">
+            <div class="custom-modal-title">管理項目の取り込み方法</div>
+            <p style="font-size:0.85rem; margin:0 0 10px 0; color:#555;">この端末の管理項目と、読み込むファイルの内容が異なります。どうしますか？</p>
+            <div id="import-fields-diff" style="font-size:0.78rem; background:#f4f7f6; border:1px solid #ddd; border-radius:4px; padding:6px 8px; margin-bottom:12px; max-height:30vh; overflow-y:auto;"></div>
+            <div class="custom-modal-actions" style="flex-direction: column; gap:8px;">
+                <button type="button" class="btn-sub" style="background:#c0392b; color:white; text-align:left;" onclick="window.uiHelper.resolveImportFieldMode('overwrite')">上書き<br><small style="font-weight:normal;">ファイルの内容に置き換える（ファイルで空欄の項目は空になる）</small></button>
+                <button type="button" class="btn-sub" style="background:#2980b9; color:white; text-align:left;" onclick="window.uiHelper.resolveImportFieldMode('merge')">統合<br><small style="font-weight:normal;">ファイルに入力がある項目だけ置き換え、空欄の項目はこの端末の値を残す</small></button>
+                <button type="button" class="btn-sub" style="background:#27ae60; color:white; text-align:left;" onclick="window.uiHelper.resolveImportFieldMode('keep')">この端末の入力を残す<br><small style="font-weight:normal;">管理項目は変更しない（地図メモ等だけ取り込む）</small></button>
+                <button type="button" class="btn-sub" onclick="window.uiHelper.resolveImportFieldMode(null)">キャンセル（取り込まない）</button>
             </div>
         </div>
     </div>
@@ -4902,6 +4918,30 @@ window.uiHelper = {
         this.closeModal();
         if (this._mapTextResolve) { this._mapTextResolve(null); this._mapTextResolve = null; }
     },
+    // JZIP読込時の管理項目の扱いを選ばせる。diffs: [{label, current, incoming}]
+    // Promise<'overwrite'|'merge'|'keep'|null>（nullはキャンセル）
+    askImportFieldMode(diffs) {
+        return new Promise((resolve) => {
+            const m = document.getElementById('modal-import-fields');
+            const box = document.getElementById('import-fields-diff');
+            if (!m) { resolve('overwrite'); return; }
+            if (box) {
+                box.innerHTML = '';
+                diffs.forEach(d => {
+                    const row = document.createElement('div');
+                    row.style.cssText = 'padding:2px 0;';
+                    row.textContent = `${d.label}：${d.current || '（空欄）'} → ${d.incoming || '（空欄）'}`;
+                    box.appendChild(row);
+                });
+            }
+            this._importFieldResolve = resolve;
+            m.style.display = 'flex';
+        });
+    },
+    resolveImportFieldMode(mode) {
+        this.closeModal();
+        if (this._importFieldResolve) { this._importFieldResolve(mode); this._importFieldResolve = null; }
+    },
     confirmSavePreset() {
         const inp = document.getElementById('preset-name-input');
         if (!inp) return;
@@ -5371,11 +5411,28 @@ window.appControl = {
     },
     importZip(input) {
         const file = input.files[0]; if (!file) return;
+        // キャンセルした後に同じファイルを選び直してもchangeが発火するよう選択状態を戻す
+        input.value = '';
         JSZip.loadAsync(file).then(async zip => {
             const json = JSON.parse(await zip.file("survey_data.json").async("string"));
-            Object.keys(json).forEach(k => {
-                const el = document.querySelector(`[name="${k}"]`);
-                if (el) { el.value = json[k]; el.dispatchEvent(new Event('input')); }
+
+            // 管理項目：この端末に入力済みの値がファイルの内容で変わってしまう場合だけ、
+            // 上書き／統合／この端末の入力を残す／キャンセル を選ばせる。
+            const fieldEls = Array.from(document.querySelectorAll('.accordion-item[data-group="num-mgmt"] [name]'));
+            const incoming = (k) => (json[k] === undefined || json[k] === null) ? '' : String(json[k]);
+            const diffs = fieldEls
+                .filter(el => el.value !== '' && incoming(el.name) !== el.value)
+                .map(el => ({ label: (el.closest('.input-group')?.querySelector('label')?.textContent) || el.name, current: el.value, incoming: incoming(el.name) }));
+            let fieldMode = 'overwrite';
+            if (diffs.length > 0) {
+                fieldMode = await uiHelper.askImportFieldMode(diffs);
+                if (!fieldMode) { uiHelper.showToast("取り込みを中止しました"); return; }
+            }
+            fieldEls.forEach(el => {
+                const v = incoming(el.name);
+                if (fieldMode === 'keep') return;
+                if (fieldMode === 'merge' && v === '') return;
+                if (el.value !== v) { el.value = v; el.dispatchEvent(new Event('input')); }
             });
             // PC版の「メモ・管理項目のみ出力」JZIPはphotoList・mainGeom・subGeomを含まない。
             // その場合は既存の写真・位置図形を消さず、ファイルに含まれる項目だけを上書きする。
