@@ -20,7 +20,7 @@
             window.top.location = window.self.location.href;
         }
     </script>
-    <title>現場踏査写真管理アプリ(現場調査用) (Ver 6.16)</title>
+    <title>現場踏査写真管理アプリ(現場調査用) (Ver 6.17)</title>
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
     <link rel="apple-touch-icon" href="icon-192.png">
@@ -551,7 +551,7 @@ body.app-touch .sketch-icon-btn-trash { bottom: 29px; }
                 <div style="padding: 20px;">
                     <div style="padding: 15px; background: #e8f6f3; border: 1px solid #a2d9ce; border-radius: 4px;">
                         <p style="margin:0 0 10px 0; font-weight:bold; color: #16a085;">アプリ更新管理</p>
-                        <p style="margin:0 0 5px 0; font-size:0.9rem;">現在のバージョン: <strong id="current-version-display">Ver 6.16</strong></p>
+                        <p style="margin:0 0 5px 0; font-size:0.9rem;">現在のバージョン: <strong id="current-version-display">Ver 6.17</strong></p>
                         <div style="display:flex; gap:10px;">
                             <button id="update-app-btn" type="button" class="btn-main" style="flex:1; padding:8px; text-align:center; line-height:1.3;" onclick="appControl.checkForUpdate()">更新</button>
                             <button id="hard-reset-btn" type="button" style="flex:1; padding:8px; text-align:center; line-height:1.3; background:#e67e22; color:#fff; border:none; border-radius:4px; font-weight:bold; cursor:pointer;" onclick="appControl.hardResetUpdate()">更新<br>(キャッシュ削除)</button>
@@ -560,6 +560,7 @@ body.app-touch .sketch-icon-btn-trash { bottom: 29px; }
 
                     <div style="margin-top: 20px;">
                         <p style="font-weight:bold; color:#2c3e50; margin-bottom:10px;">更新履歴</p>
+                        <details class="history-item"><summary>Ver 6.17</summary><p>PC版の「メモ・管理項目のみ出力」で作ったJZIP（写真・位置図形を含まない）を読み込めるようにした。JZIP読込（importZip）は、ファイルにphotoListが無ければ既存の写真を、mainGeom/subGeomが無ければ既存の位置図形を消さずに残し、ファイルに含まれる管理項目と地図メモだけを上書きする（従来はphotoListが無いと読込自体がエラーになっていた）。</p></details>
                         <details class="history-item"><summary>Ver 6.16</summary><p>位置図タブに「メモ一覧」モードを追加（「メイン(位置)」の隣）。PC版アプリで取込箇所ごとに作成した地図メモ（タグ「メモ」「未撮影」）をJZIP（survey_data.jsonのmapMemos）で受け取り、地図上に番号付きの丸（タグで色分け：メモ=青、未撮影=赤）で表示し、地図の下に一覧を表示する。一覧の「確認済み」を押すとそのメモは地図から消え、一覧では淡色表示になる（「戻す」で未確認に戻せる）。確認状態はオートセーブ・JZIP保存に含まれ、PC版へそのまま返せる。タブには未確認件数を表示。また、PC版で設定した写真の地図表示オンオフ（photoListのmapHidden）を、読込・オートセーブ・JZIP保存で失わず引き継ぐようにした。</p></details>
                         <details class="history-item"><summary>Ver 6.15</summary><p>更新タブの「更新」「更新(キャッシュ削除)」ボタンをwidth:auto/固定pxからflex:1に変更し、常に同じ幅で画面幅いっぱいに横並び表示されるようにした。また常時表示していた#update-statusのステータステキスト（「確認中...」「最新です。」等）を廃止し、すべてトースト通知（uiHelper.showToast）のみで表示するよう統一した（エラー時のalert()は従来通り）。</p></details>
                         <details class="history-item"><summary>Ver 6.14</summary><p>更新タブの補足説明文（「更新で直らない場合はキャッシュを削除して更新をお試しください…」）を削除した。同じ内容は「キャッシュを削除して更新」ボタン押下時の確認ポップアップに既に表示されるため、常時表示は重複だった。</p></details>
@@ -5376,12 +5377,19 @@ window.appControl = {
                 const el = document.querySelector(`[name="${k}"]`);
                 if (el) { el.value = json[k]; el.dispatchEvent(new Event('input')); }
             });
-            mapApp.init(); mapApp.allDrawnItems.clearLayers();
-            mapApp._restoreDrawnGeom(json.mainGeom, true);
-            mapApp._restoreDrawnGeom(json.subGeom, false);
+            // PC版の「メモ・管理項目のみ出力」JZIPはphotoList・mainGeom・subGeomを含まない。
+            // その場合は既存の写真・位置図形を消さず、ファイルに含まれる項目だけを上書きする。
+            const hasGeom = json.mainGeom !== undefined || json.subGeom !== undefined;
+            const hasPhotos = Array.isArray(json.photoList);
+            mapApp.init();
+            if (hasGeom) {
+                mapApp.allDrawnItems.clearLayers();
+                mapApp._restoreDrawnGeom(json.mainGeom, true);
+                mapApp._restoreDrawnGeom(json.subGeom, false);
+            }
             mapApp.updateMapSummary();
-            photoApp.photos = [];
-            for (const p of json.photoList) {
+            if (hasPhotos) photoApp.photos = [];
+            for (const p of (hasPhotos ? json.photoList : [])) {
                 const b64 = await zip.file(`photos/${p.fileName}`).async("base64");
                 photoApp.photos.push({
                     dataUrl:     `data:image/jpeg;base64,${b64}`,
@@ -5395,9 +5403,9 @@ window.appControl = {
                 });
             }
             memoApp.setMemos(json.mapMemos);
-            photoApp.currentIndex = 0; photoApp.render(); photoApp.updateHeaderSummary();
-            storageManager.save(); 
-            uiHelper.showToast("インポート完了");
+            if (hasPhotos) { photoApp.currentIndex = 0; photoApp.render(); photoApp.updateHeaderSummary(); }
+            storageManager.save();
+            uiHelper.showToast((hasPhotos || hasGeom) ? "インポート完了" : "管理項目・地図メモを読み込みました（写真・位置図はそのまま）");
         });
     },
     executeClear() {
