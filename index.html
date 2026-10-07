@@ -20,7 +20,7 @@
             window.top.location = window.self.location.href;
         }
     </script>
-    <title>現場踏査写真管理アプリ(現場調査用) (Ver 6.18)</title>
+    <title>現場踏査写真管理アプリ(現場調査用) (Ver 6.19)</title>
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
     <link rel="apple-touch-icon" href="icon-192.png">
@@ -551,7 +551,7 @@ body.app-touch .sketch-icon-btn-trash { bottom: 29px; }
                 <div style="padding: 20px;">
                     <div style="padding: 15px; background: #e8f6f3; border: 1px solid #a2d9ce; border-radius: 4px;">
                         <p style="margin:0 0 10px 0; font-weight:bold; color: #16a085;">アプリ更新管理</p>
-                        <p style="margin:0 0 5px 0; font-size:0.9rem;">現在のバージョン: <strong id="current-version-display">Ver 6.18</strong></p>
+                        <p style="margin:0 0 5px 0; font-size:0.9rem;">現在のバージョン: <strong id="current-version-display">Ver 6.19</strong></p>
                         <div style="display:flex; gap:10px;">
                             <button id="update-app-btn" type="button" class="btn-main" style="flex:1; padding:8px; text-align:center; line-height:1.3;" onclick="appControl.checkForUpdate()">更新</button>
                             <button id="hard-reset-btn" type="button" style="flex:1; padding:8px; text-align:center; line-height:1.3; background:#e67e22; color:#fff; border:none; border-radius:4px; font-weight:bold; cursor:pointer;" onclick="appControl.hardResetUpdate()">更新<br>(キャッシュ削除)</button>
@@ -560,6 +560,7 @@ body.app-touch .sketch-icon-btn-trash { bottom: 29px; }
 
                     <div style="margin-top: 20px;">
                         <p style="font-weight:bold; color:#2c3e50; margin-bottom:10px;">更新履歴</p>
+                        <details class="history-item"><summary>Ver 6.19</summary><p>PC版で写真ごとに付けた現場タグ（photoListのsiteTag）と、PC版の現場タグ別写真帳の表紙デザイン（siteTagCovers）・写真番号の付け方（photoNumbering）を、JZIP読込・オートセーブ・JZIP保存で失わずに引き継ぐようにした（iPhone版では表示・編集しない）。</p></details>
                         <details class="history-item"><summary>Ver 6.18</summary><p>JZIP読込時、この端末に入力済みの管理項目がファイルの内容で変わってしまう場合に、取り込み方法を選ぶダイアログ（#modal-import-fields）を表示するようにした。「上書き」＝ファイルの内容に置き換える（ファイルで空欄の項目は空になる）、「統合」＝ファイルに入力がある項目だけ置き換え空欄はこの端末の値を残す、「この端末の入力を残す」＝管理項目は変更せず地図メモ等だけ取り込む、「キャンセル」＝何も取り込まない。ダイアログには変わる項目の一覧（現在値→ファイルの値）を表示する。端末側が空欄のみ、またはファイルと同じ内容のときはダイアログを出さずにそのまま取り込む。対象は管理項目タブの項目のみで、写真・位置図形・地図メモの扱いは従来通り。あわせて、キャンセル後に同じファイルを選び直しても読込が動くようファイル選択をリセットするようにした。</p></details>
                         <details class="history-item"><summary>Ver 6.17</summary><p>PC版の「メモ・管理項目のみ出力」で作ったJZIP（写真・位置図形を含まない）を読み込めるようにした。JZIP読込（importZip）は、ファイルにphotoListが無ければ既存の写真を、mainGeom/subGeomが無ければ既存の位置図形を消さずに残し、ファイルに含まれる管理項目と地図メモだけを上書きする（従来はphotoListが無いと読込自体がエラーになっていた）。</p></details>
                         <details class="history-item"><summary>Ver 6.16</summary><p>位置図タブに「メモ一覧」モードを追加（「メイン(位置)」の隣）。PC版アプリで取込箇所ごとに作成した地図メモ（タグ「メモ」「未撮影」）をJZIP（survey_data.jsonのmapMemos）で受け取り、地図上に番号付きの丸（タグで色分け：メモ=青、未撮影=赤）で表示し、地図の下に一覧を表示する。一覧の「確認済み」を押すとそのメモは地図から消え、一覧では淡色表示になる（「戻す」で未確認に戻せる）。確認状態はオートセーブ・JZIP保存に含まれ、PC版へそのまま返せる。タブには未確認件数を表示。また、PC版で設定した写真の地図表示オンオフ（photoListのmapHidden）を、読込・オートセーブ・JZIP保存で失わず引き継ぐようにした。</p></details>
@@ -5212,6 +5213,22 @@ window.memoApp = {
     }
 };
 
+// PC版だけが使う箇所単位の項目（現場タグ別写真帳の表紙デザインsiteTagCovers・写真番号の付け方photoNumbering）。
+// iPhone版では表示・編集しないが、JZIP読込・オートセーブ・JZIP保存で失わずにPC版へそのまま返す。
+// （写真単位の現場タグsiteTagは、mapHiddenと同じく各写真のデータに持たせて引き継ぐ）
+window.pcExtras = {
+    KEYS: ['siteTagCovers', 'photoNumbering'],
+    data: {},
+    // reset：写真・位置図ごと読み込むとき（別の箇所に入れ替わる）は、前の箇所の値を持ち越さないよう空にしてから取り込む
+    take(json, reset) {
+        if (reset) this.data = {};
+        if (!json) return;
+        this.KEYS.forEach(k => { if (json[k] !== undefined) this.data[k] = json[k]; });
+    },
+    applyTo(d) { Object.assign(d, this.data); },
+    clear() { this.data = {}; }
+};
+
 window.storageManager = {
     KEY: 'survey_app_autosave',
     save() {
@@ -5229,10 +5246,12 @@ window.storageManager = {
                     lat:         p.lat         ?? null,
                     lng:         p.lng         ?? null,
                     gpsAccuracy: p.gpsAccuracy ?? null,
-                    mapHidden:   !!p.mapHidden
+                    mapHidden:   !!p.mapHidden,
+                    siteTag:     p.siteTag     || ''
                     // dataUrlは保存しない
                 }));
                 data.mapMemos = window.memoApp ? memoApp.memos : [];
+                pcExtras.applyTo(data);
                 localStorage.setItem(this.KEY, JSON.stringify(data));
             } catch (e) { console.warn("Auto-save failed:", e); }
         }, 500);
@@ -5269,13 +5288,15 @@ window.storageManager = {
                     lat:         p.lat         ?? null,
                     lng:         p.lng         ?? null,
                     gpsAccuracy: p.gpsAccuracy ?? null,
-                    mapHidden:   !!p.mapHidden
+                    mapHidden:   !!p.mapHidden,
+                    siteTag:     p.siteTag     || ''
                 }));
                 window.photoApp.currentIndex = 0;
                 window.photoApp.render();
                 window.photoApp.updateHeaderSummary();
             }
             window.memoApp && memoApp.setMemos(json.mapMemos);
+            pcExtras.take(json, true);
         } catch (e) { console.error("Auto-load failed", e); }
     }
 };
@@ -5336,10 +5357,12 @@ window.appControl = {
                 lat:         p.lat         ?? null,
                 lng:         p.lng         ?? null,
                 gpsAccuracy: p.gpsAccuracy ?? null,
-                mapHidden:   !!p.mapHidden
+                mapHidden:   !!p.mapHidden,
+                siteTag:     p.siteTag     || ''
             };
         });
         d.mapMemos = window.memoApp ? memoApp.memos : [];
+        pcExtras.applyTo(d);
 
         zip.file("survey_data.json", JSON.stringify(d, null, 2));
         zip.generateAsync({ type: "blob" }).then(blob => {
@@ -5456,10 +5479,12 @@ window.appControl = {
                     lat:         p.lat         ?? null,
                     lng:         p.lng         ?? null,
                     gpsAccuracy: p.gpsAccuracy ?? null,
-                    mapHidden:   !!p.mapHidden
+                    mapHidden:   !!p.mapHidden,
+                    siteTag:     p.siteTag     || ''
                 });
             }
             memoApp.setMemos(json.mapMemos);
+            pcExtras.take(json, hasPhotos || hasGeom);
             if (hasPhotos) { photoApp.currentIndex = 0; photoApp.render(); photoApp.updateHeaderSummary(); }
             storageManager.save();
             uiHelper.showToast((hasPhotos || hasGeom) ? "インポート完了" : "管理項目・地図メモを読み込みました（写真・位置図はそのまま）");
@@ -5477,6 +5502,7 @@ window.appControl = {
         }
         mapApp.init(); mapApp.allDrawnItems.clearLayers(); mapApp.updateMapSummary();
         memoApp.setMemos([]);
+        pcExtras.clear();
         photoApp.photos = []; photoApp.currentIndex = -1; photoApp.render(); photoApp.updateHeaderSummary();
         // 【修正】画面上の写真一覧は空にしていたが、IndexedDB(photoStorage)側の
         // 写真データを削除していなかったため、前回調査の写真が消えずに残り続けていた。
